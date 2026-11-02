@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0B0F17">
+  <title>Hydraulic Inventory Calculator</title>
+  <meta name="description" content="Screening calculator for post-precipitation separation stages: nominal hydraulic inventory V = Q·τ, comparison with chemical-clarification design references, footprint, nanocoagulant make-up and sensitivity. Every number is computed by a checkable formula.">
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0B0F17; --card: #131B2E; --border: #23304A; --border-hover: #33476B;
+      --ink: #F8FAFC; --ink-hi: #E2E8F0; --ink-2: #94A3B8;
+      --accent: #38BDF8; --accent-contrast: #082F49;
+      --badge-bg: #0C2D48; --badge-text: #7DD3FC; --badge-border: #1E4976;
+      --s1: #3987e5; --s2: #d95926; --s3: #199e70;
+      --warn: #fab219; --crit: #e66767; --good: #0ca30c;
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink-2); font-size: 15px; line-height: 1.6; }
+    h1, h2, h3, p { margin: 0; } h1, h2, h3 { color: var(--ink); }
+    h1 { font-size: 30px; line-height: 1.2; letter-spacing: -0.02em; }
+    h2 { font-size: 18px; font-weight: 600; } h3 { font-size: 15px; font-weight: 600; }
+    strong { color: var(--ink-hi); font-weight: 600; }
+    a { color: var(--accent); text-underline-offset: 4px; }
+    code, .mono { font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.92em; }
+    .container { max-width: 980px; margin-inline: auto; padding: 40px 24px 64px; }
+    .crumb { font-size: 13px; margin-bottom: 20px; }
+    .lede { max-width: 70ch; margin-top: 12px; color: var(--ink-hi); }
+    .note { max-width: 70ch; margin-top: 10px; font-size: 13.5px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 28px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; min-width: 0; }
+    .card h2 { margin-bottom: 4px; }
+    .card .sub { font-size: 13px; margin-bottom: 14px; }
+    .tag { display: inline-block; font-size: 11.5px; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--badge-border); background: var(--badge-bg); color: var(--badge-text); margin-left: 8px; vertical-align: middle; }
+    .tag.ext { background: transparent; border-color: var(--border); color: var(--ink-2); }
+    label { display: block; font-size: 13px; color: var(--ink-hi); margin-bottom: 4px; }
+    .field { margin-bottom: 12px; }
+    .field .hint { font-size: 12px; color: var(--ink-2); margin-top: 3px; }
+    input[type=number], input[type=text], select { width: 100%; padding: 9px 11px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--ink); font: inherit; font-size: 14px; }
+    input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    input[aria-invalid="true"] { border-color: var(--crit); }
+    .row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    .stage-row { display: grid; grid-template-columns: 1fr 110px; gap: 10px; align-items: end; }
+    .msgs { margin-top: 8px; display: grid; gap: 6px; }
+    .msg { font-size: 13px; padding: 8px 10px; border-radius: 8px; border: 1px solid; display: flex; gap: 8px; align-items: flex-start; }
+    .msg.err { border-color: var(--crit); color: #fca5a5; } .msg.warn { border-color: var(--warn); color: #fcd34d; }
+    .msg .ic { flex: 0 0 auto; font-weight: 700; }
+    .kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 8px; }
+    .kpi { padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; }
+    .kpi .v { font-size: 24px; font-weight: 700; color: var(--ink); line-height: 1.15; }
+    .kpi .l { font-size: 12px; margin-top: 4px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; margin-top: 12px; }
+    th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    th { color: var(--ink-hi); font-weight: 600; } td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 7px; vertical-align: -1px; }
+    .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12.5px; margin-top: 10px; }
+    svg text { font-family: inherit; }
+    .chart { margin-top: 14px; }
+    .tt { position: fixed; pointer-events: none; background: #0B0F17; border: 1px solid var(--border-hover); color: var(--ink-hi); font-size: 12.5px; padding: 6px 9px; border-radius: 6px; display: none; z-index: 5; white-space: nowrap; }
+    .btn { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--border-hover); background: transparent; color: var(--ink-hi); font: inherit; font-size: 13.5px; cursor: pointer; }
+    .btn:hover { border-color: var(--accent); color: var(--ink); } .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-contrast); font-weight: 700; }
+    .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+    details { margin-top: 20px; border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; background: var(--card); }
+    summary { cursor: pointer; color: var(--ink-hi); font-weight: 600; }
+    details p, details li { font-size: 13.5px; } details ul { padding-left: 18px; }
+    .selfcheck { font-size: 12.5px; margin-top: 24px; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); }
+    .selfcheck.ok { border-color: #1f6b2a; } .selfcheck.bad { border-color: var(--crit); }
+    footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--border); font-size: 13px; }
+    @media (max-width: 760px) {
+      .container { padding: 28px 16px 48px; }
+      h1 { font-size: 26px; }
+      .grid { grid-template-columns: 1fr; }
+      .row { grid-template-columns: 1fr; }
+      .kpis { grid-template-columns: 1fr; }
+    }
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <p class="crumb"><a href="../../">Linan He</a> · Case study A</p>
+    <h1>Hydraulic inventory calculator for post-precipitation separation</h1>
+    <p class="lede">A screening tool that turns stage durations into nominal hydraulic inventory, <span class="mono">V = Q·τ</span>, and compares a candidate separation sequence with chemical-clarification design references. The core block reproduces the prospective analysis in my first-author manuscript; the extensions below it are parametric and use assumptions you supply.</p>
+    <p class="note">Boundary: separation stage only; upstream precipitation and ageing are excluded. The continuous-flow translation assumes equivalent performance at the same nominal HRT. This is a design-screening estimate, not a validated reactor design.</p>
+
+    <div class="grid">
+      <!-- Inputs -->
+      <section class="card" aria-labelledby="in-h">
+        <h2 id="in-h">Inputs</h2>
+        <p class="sub">Durations in minutes; flow in m³/d.</p>
+
+        <div class="field">
+          <label for="q">Treatment capacity, Q (m³/d)</label>
+          <input id="q" type="number" inputmode="decimal" value="1000" min="0" step="any">
+          <div class="hint">Paper normalisation: 1000 m³/d. Results scale linearly with Q.</div>
+        </div>
+
+        <h3 style="margin:14px 0 6px">Candidate sequence</h3>
+        <div class="stage-row"><div class="field"><label for="n1">Stage 1</label><input id="n1" type="text" value="Mixing"></div><div class="field"><label for="t1">min</label><input id="t1" type="number" inputmode="decimal" value="2" min="0" step="any"></div></div>
+        <div class="stage-row"><div class="field"><label for="n2">Stage 2</label><input id="n2" type="text" value="Field-free contact"></div><div class="field"><label for="t2">min</label><input id="t2" type="number" inputmode="decimal" value="5" min="0" step="any"></div></div>
+        <div class="stage-row"><div class="field"><label for="n3">Stage 3</label><input id="n3" type="text" value="Magnetic treatment"></div><div class="field"><label for="t3">min</label><input id="t3" type="number" inputmode="decimal" value="10" min="0" step="any"></div></div>
+        <div class="hint" style="font-size:12px">Default: demonstrated M20 batch sequence, 2 + 5 + 10 min.</div>
+
+        <h3 style="margin:16px 0 6px">Design references <span class="tag">9VAC25-790-850</span></h3>
+        <div class="row">
+          <div class="field"><label for="r1a">Reactor-clarifier: floc/mix (min)</label><input id="r1a" type="number" value="30" min="0" step="any"></div>
+          <div class="field"><label for="r1b">Clarification (min)</label><input id="r1b" type="number" value="120" min="0" step="any"></div>
+          <div></div>
+          <div class="field"><label for="r2a">Conventional: flocculation (min)</label><input id="r2a" type="number" value="20" min="0" step="any"></div>
+          <div class="field"><label for="r2b">Settling (min)</label><input id="r2b" type="number" value="240" min="0" step="any"></div>
+        </div>
+
+        <h3 style="margin:16px 0 6px">Extensions <span class="tag ext">user assumptions</span></h3>
+        <div class="row">
+          <div class="field"><label for="depth">Water depth (m)</label><input id="depth" type="number" value="3" min="0" step="any"><div class="hint">For plan-area estimate only.</div></div>
+          <div class="field"><label for="dose">Nanocoagulant dose (g/m³)</label><input id="dose" type="number" value="" min="0" step="any" placeholder="e.g. 100"><div class="hint">Leave blank to skip.</div></div>
+          <div class="field"><label for="reuse">Reuse fraction (0–1)</label><input id="reuse" type="number" value="" min="0" max="1" step="any" placeholder="e.g. 0.66"><div class="hint">Fraction of inventory recovered per cycle.</div></div>
+        </div>
+
+        <div class="actions">
+          <button class="btn primary" id="reset" type="button">Reset to paper defaults</button>
+          <button class="btn" id="dl" type="button">Download results (CSV)</button>
+        </div>
+        <div class="msgs" id="msgs" aria-live="polite"></div>
+      </section>
+
+      <!-- Results -->
+      <section class="card" aria-labelledby="out-h">
+        <h2 id="out-h">Results</h2>
+        <p class="sub">Nominal inventory per stage and in total, at the entered Q.</p>
+        <div class="kpis">
+          <div class="kpi"><div class="v" id="k-tau">—</div><div class="l">Equivalent process time τ<sub>eq</sub> (min)</div></div>
+          <div class="kpi"><div class="v" id="k-vol">—</div><div class="l">Candidate inventory (m³)</div></div>
+          <div class="kpi"><div class="v" id="k-area">—</div><div class="l">Plan area at set depth (m²)</div></div>
+        </div>
+
+        <table aria-label="Stage volumes">
+          <thead><tr><th>Scenario / stage</th><th class="num">τ (min)</th><th class="num">V (m³)</th><th class="num">Ratio to candidate</th></tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+
+        <div class="chart" id="chart1"></div>
+        <div class="legend"><span><i class="sw" style="background:var(--s1)"></i>Stage 1</span><span><i class="sw" style="background:var(--s2)"></i>Stage 2</span><span><i class="sw" style="background:var(--s3)"></i>Stage 3</span></div>
+
+        <h3 style="margin-top:22px">Sensitivity: one stage ±50 %</h3>
+        <p class="sub">Change in candidate total when a single stage duration moves. V is linear in τ, so the result is exact; it shows which stage dominates.</p>
+        <div class="chart" id="chart2"></div>
+
+        <div id="ext-out" style="margin-top:18px"></div>
+      </section>
+    </div>
+
+    <details>
+      <summary>Formulas, sources and how to check the numbers</summary>
+      <ul>
+        <li><strong>Equivalent process time</strong>: τ<sub>eq</sub> = Σ τ<sub>i</sub>. Continuous-flow translation assumes τ<sub>HRT,nom</sub> = τ<sub>eq</sub>.</li>
+        <li><strong>Nominal inventory</strong>: V = Q · τ / 1440, with Q in m³/d and τ in min. At Q = 1000 m³/d and τ = 17 min: 1000 × 17 / 1440 = 11.81 m³.</li>
+        <li><strong>Ratio</strong>: V<sub>reference</sub> / V<sub>candidate</sub>. Reference stages are treated as sequential and additive.</li>
+        <li><strong>Plan area</strong> (extension): A = V / depth; ignores freeboard, walls and hydraulic design.</li>
+        <li><strong>Nanocoagulant make-up</strong> (extension): gross = dose × Q / 1000 kg/d; make-up = gross × (1 − reuse fraction). Reuse fraction is a user assumption; my manuscript reports 65.9 % of initial inventory entering Cycle 3 for the silica-coated material under the tested conditions, which is not the same quantity as a per-cycle recovery fraction.</li>
+        <li><strong>Design references</strong>: Virginia Administrative Code 9VAC25-790-850 (chemical clarification): reactor-clarifier 30 + 120 min; separate flocculation and settling 20 + 240 min.</li>
+        <li><strong>Self-check</strong>: on load, the page recomputes the manuscript case and compares against the published Fig. 5 source values to 1e-9 m³. The same vectors drive the Python test suite.</li>
+        <li><strong>AI use</strong>: the layout and script were drafted with AI assistance. Every formula was written out above and the self-check below verifies the output against independently recorded figures.</li>
+      </ul>
+    </details>
+
+    <div class="selfcheck" id="selfcheck">Self-check pending…</div>
+
+    <footer>Linan He · <a href="https://github.com/PatrickHelinan/water-engineering-cases" id="repo">Python module and tests</a> · Values depend on entered assumptions; no client or plant data are used.</footer>
+  </div>
+  <div class="tt" id="tt" role="tooltip"></div>
+
+<script>
+// ---------- Shared test vectors (identical to shared/test_vectors.json) ----------
+const VECTORS = {"min_per_day":1440,"cases":[{"id":"paper_1000","q":1000,"stages":{"Mixing":2,"Field-free contact":5,"Magnetic treatment":10},"expect":{"tau":17,"stage":{"Mixing":1.3888888888888888,"Field-free contact":3.4722222222222223,"Magnetic treatment":6.944444444444445},"total":11.805555555555555,"refTotals":[104.16666666666667,180.55555555555554],"refRatios":[8.823529411764707,15.294117647058824]},"tol":1e-9},{"id":"scale_linear_5000","q":5000,"stages":{"Mixing":2,"Field-free contact":5,"Magnetic treatment":10},"expect":{"tau":17,"total":59.02777777777778},"tol":1e-9},{"id":"zero_stage_warns","q":1000,"stages":{"Mixing":0,"Field-free contact":5,"Magnetic treatment":10},"expect":{"tau":15,"total":10.416666666666666,"warn":"zero duration"},"tol":1e-9}],"errors":[{"id":"negative_flow","q":-10,"stages":{"Mixing":2},"err":"positive"},{"id":"missing_flow","q":null,"stages":{"Mixing":2},"err":"missing"},{"id":"negative_stage","q":1000,"stages":{"Mixing":-2},"err":"negative"}],"warnings":[{"id":"unit_flow","q":2000000,"stages":{"Mixing":2},"warn":"check units"},{"id":"unit_stage","q":1000,"stages":{"Mixing":3000},"warn":"check units"}]};
+
+// ---------- Core (mirrors hydraulic_inventory.py) ----------
+const MIN_PER_DAY = 1440;
+class InputError extends Error {}
+function validateFlow(q) {
+  const w = [];
+  if (q === null || q === undefined || q === '') throw new InputError('Flow is missing.');
+  if (typeof q !== 'number' || Number.isNaN(q)) throw new InputError('Flow must be a number in m³/d.');
+  if (q <= 0) throw new InputError('Flow must be positive (m³/d).');
+  if (q > 1e6) w.push('Flow above 1,000,000 m³/d — check units (m³/d, not m³/h or L/s).');
+  return w;
+}
+function validateScenario(sc) {
+  const w = [];
+  if (!sc.stages.length) throw new InputError(`Scenario '${sc.name}' has no stages.`);
+  for (const st of sc.stages) {
+    if (st.min === null || st.min === undefined || Number.isNaN(st.min)) throw new InputError(`Stage '${st.name}' duration is missing.`);
+    if (st.min < 0) throw new InputError(`Stage '${st.name}' duration cannot be negative.`);
+    if (st.min === 0) w.push(`Stage '${st.name}' has zero duration and contributes no volume.`);
+    if (st.min > MIN_PER_DAY) w.push(`Stage '${st.name}' exceeds 24 h — check units (minutes, not seconds).`);
+  }
+  const tau = sc.stages.reduce((a, s) => a + s.min, 0);
+  if (tau > 12 * 60) w.push(`Scenario '${sc.name}' total HRT exceeds 12 h; outside the screening range of this tool.`);
+  return w;
+}
+const stageVol = (q, min) => q * min / MIN_PER_DAY;
+function inventory(q, sc) {
+  const warnings = validateFlow(q).concat(validateScenario(sc));
+  const stages = sc.stages.map(s => ({ name: s.name, min: s.min, vol: stageVol(q, s.min) }));
+  const tau = stages.reduce((a, s) => a + s.min, 0);
+  const total = stages.reduce((a, s) => a + s.vol, 0);
+  return { name: sc.name, q, tau, stages, total, warnings };
+}
+function tornado(q, sc, swing = 0.5) {
+  const base = inventory(q, sc);
+  return sc.stages.map(st => {
+    const lo = stageVol(q, base.tau - st.min * swing), hi = stageVol(q, base.tau + st.min * swing);
+    return { stage: st.name, lo, hi, span: hi - lo, share: base.tau ? st.min / base.tau : 0 };
+  }).sort((a, b) => Math.abs(b.span) - Math.abs(a.span));
+}
+
+// ---------- Self-check against vectors ----------
+function selfCheck() {
+  const fails = [];
+  const close = (a, b, tol) => Math.abs(a - b) <= tol;
+  for (const c of VECTORS.cases) {
+    const sc = { name: c.id, stages: Object.entries(c.stages).map(([name, min]) => ({ name, min })) };
+    const r = inventory(c.q, sc);
+    if (!close(r.tau, c.expect.tau, c.tol)) fails.push(`${c.id}: tau`);
+    if (!close(r.total, c.expect.total, c.tol)) fails.push(`${c.id}: total`);
+    if (c.expect.stage) for (const s of r.stages) if (!close(s.vol, c.expect.stage[s.name], c.tol)) fails.push(`${c.id}: ${s.name}`);
+    if (c.expect.warn && !r.warnings.some(w => w.includes(c.expect.warn))) fails.push(`${c.id}: warning`);
+    if (c.expect.refTotals) {
+      const refs = [inventory(c.q, { name: 'rc', stages: [{ name: 'a', min: 30 }, { name: 'b', min: 120 }] }), inventory(c.q, { name: 'cc', stages: [{ name: 'a', min: 20 }, { name: 'b', min: 240 }] })];
+      refs.forEach((ref, i) => {
+        if (!close(ref.total, c.expect.refTotals[i], c.tol)) fails.push(`${c.id}: ref ${i} total`);
+        if (!close(ref.total / r.total, c.expect.refRatios[i], c.tol)) fails.push(`${c.id}: ref ${i} ratio`);
+      });
+    }
+  }
+  for (const e of VECTORS.errors) {
+    try { inventory(e.q, { name: e.id, stages: Object.entries(e.stages).map(([name, min]) => ({ name, min })) }); fails.push(`${e.id}: no error`); }
+    catch (err) { if (!(err instanceof InputError) || !err.message.toLowerCase().includes(e.err)) fails.push(`${e.id}: wrong error`); }
+  }
+  for (const w of VECTORS.warnings) {
+    const r = inventory(w.q, { name: w.id, stages: Object.entries(w.stages).map(([name, min]) => ({ name, min })) });
+    if (!r.warnings.some(x => x.includes(w.warn))) fails.push(`${w.id}: warning`);
+  }
+  const el = document.getElementById('selfcheck');
+  const n = VECTORS.cases.length + VECTORS.errors.length + VECTORS.warnings.length;
+  if (fails.length) { el.className = 'selfcheck bad'; el.textContent = `Self-check FAILED (${fails.length}): ` + fails.join('; '); }
+  else { el.className = 'selfcheck ok'; el.textContent = `Self-check passed: ${n} test vectors, including the manuscript case (11.8056 m³; ratios 8.82 and 15.29) to 1e-9 m³.`; }
+  return fails.length === 0;
+}
+
+// ---------- UI ----------
+const $ = id => document.getElementById(id);
+const num = id => { const v = $(id).value.trim(); return v === '' ? null : Number(v); };
+const fmt = (x, d = 2) => Number.isFinite(x) ? x.toLocaleString('en', { maximumFractionDigits: d, minimumFractionDigits: d }) : '—';
+const DEFAULTS = { q: 1000, n1: 'Mixing', t1: 2, n2: 'Field-free contact', t2: 5, n3: 'Magnetic treatment', t3: 10, r1a: 30, r1b: 120, r2a: 20, r2b: 240, depth: 3, dose: '', reuse: '' };
+let last = null;
+
+function readScenarios() {
+  const cand = { name: 'Candidate sequence', stages: [1, 2, 3].map(i => ({ name: $('n' + i).value.trim() || `Stage ${i}`, min: num('t' + i) })).filter(s => s.min !== null || true) };
+  const refs = [
+    { name: 'Reactor-clarifier (design reference)', stages: [{ name: 'Flocculation / mixing', min: num('r1a') }, { name: 'Clarification', min: num('r1b') }] },
+    { name: 'Conventional clarification (design reference)', stages: [{ name: 'Flocculation', min: num('r2a') }, { name: 'Settling', min: num('r2b') }] },
+  ];
+  return { cand, refs };
+}
+
+function showMsgs(list) {
+  const box = $('msgs'); box.innerHTML = '';
+  for (const m of list) {
+    const d = document.createElement('div'); d.className = 'msg ' + m.kind;
+    d.innerHTML = `<span class="ic" aria-hidden="true">${m.kind === 'err' ? '✕' : '!'}</span><span>${m.text}</span>`;
+    box.appendChild(d);
+  }
+}
+
+function compute() {
+  const { cand, refs } = readScenarios();
+  const q = num('q');
+  const msgs = [];
+  ['q', 't1', 't2', 't3', 'r1a', 'r1b', 'r2a', 'r2b', 'depth'].forEach(id => $(id).removeAttribute('aria-invalid'));
+  let c, rs;
+  try {
+    c = inventory(q, cand);
+    rs = refs.map(r => inventory(q, r));
+  } catch (e) {
+    msgs.push({ kind: 'err', text: e.message });
+    if (/flow/i.test(e.message)) $('q').setAttribute('aria-invalid', 'true');
+    showMsgs(msgs); clearOutputs(); return;
+  }
+  c.warnings.concat(...rs.map(r => r.warnings)).forEach(w => msgs.push({ kind: 'warn', text: w }));
+  if (c.total <= 0) { msgs.push({ kind: 'err', text: 'Candidate inventory is zero; ratios are undefined.' }); showMsgs(msgs); clearOutputs(); return; }
+
+  // KPIs
+  $('k-tau').textContent = fmt(c.tau, 1);
+  $('k-vol').textContent = fmt(c.total, 2);
+  const depth = num('depth');
+  let area = null;
+  if (depth === null) msgs.push({ kind: 'warn', text: 'Water depth blank; plan area not computed.' });
+  else if (depth <= 0) { msgs.push({ kind: 'err', text: 'Water depth must be positive.' }); $('depth').setAttribute('aria-invalid', 'true'); }
+  else area = c.total / depth;
+  $('k-area').textContent = area === null ? '—' : fmt(area, 2);
+
+  // Table
+  const tb = $('tbody'); tb.innerHTML = '';
+  const all = [c, ...rs];
+  all.forEach((s, i) => {
+    const ratio = i === 0 ? 1 : s.total / c.total;
+    tb.insertAdjacentHTML('beforeend', `<tr><th>${s.name}</th><td class="num">${fmt(s.tau, 1)}</td><td class="num"><strong>${fmt(s.total, 2)}</strong></td><td class="num">${i === 0 ? '1.00 (base)' : fmt(ratio, 2) + '×'}</td></tr>`);
+    s.stages.forEach((st, j) => tb.insertAdjacentHTML('beforeend', `<tr><td style="padding-left:22px"><i class="sw" style="background:var(--s${j + 1})"></i>${st.name}</td><td class="num">${fmt(st.min, 1)}</td><td class="num">${fmt(st.vol, 2)}</td><td></td></tr>`));
+  });
+
+  drawStacked(all, q);
+  drawTornado(tornado(q, cand), c.total);
+
+  // Extensions: nanocoagulant
+  const dose = num('dose'), reuse = num('reuse');
+  const ext = $('ext-out'); ext.innerHTML = '';
+  if (dose !== null || reuse !== null) {
+    if (dose === null || reuse === null) msgs.push({ kind: 'warn', text: 'Enter both dose and reuse fraction to compute make-up.' });
+    else if (dose < 0) { msgs.push({ kind: 'err', text: 'Dose cannot be negative.' }); $('dose').setAttribute('aria-invalid', 'true'); }
+    else if (reuse < 0 || reuse > 1) { msgs.push({ kind: 'err', text: 'Reuse fraction must be between 0 and 1.' }); $('reuse').setAttribute('aria-invalid', 'true'); }
+    else {
+      const gross = dose * q / 1000, makeup = gross * (1 - reuse);
+      ext.innerHTML = `<h3>Nanocoagulant inventory <span class="tag ext">user assumptions</span></h3>
+        <table aria-label="Nanocoagulant"><tbody>
+        <tr><th>Gross contacted per day</th><td class="num">${fmt(gross, 1)} kg/d</td><td>dose × Q</td></tr>
+        <tr><th>Fresh make-up per day</th><td class="num"><strong>${fmt(makeup, 1)} kg/d</strong></td><td>gross × (1 − reuse)</td></tr>
+        <tr><th>Recovered and recirculated</th><td class="num">${fmt(gross - makeup, 1)} kg/d</td><td>gross × reuse</td></tr>
+        </tbody></table>`;
+    }
+  }
+  showMsgs(msgs);
+  last = { q, all, area, depth, dose, reuse };
+}
+
+function clearOutputs() { ['k-tau', 'k-vol', 'k-area'].forEach(id => $(id).textContent = '—'); $('tbody').innerHTML = ''; $('chart1').innerHTML = ''; $('chart2').innerHTML = ''; $('ext-out').innerHTML = ''; last = null; }
+
+// ---------- Charts (inline SVG) ----------
+const tt = $('tt');
+function tip(el, text) {
+  el.addEventListener('mouseenter', e => { tt.textContent = text; tt.style.display = 'block'; });
+  el.addEventListener('mousemove', e => { tt.style.left = (e.clientX + 12) + 'px'; tt.style.top = (e.clientY + 12) + 'px'; });
+  el.addEventListener('mouseleave', () => tt.style.display = 'none');
+}
+function svgEl(tag, attrs) { const e = document.createElementNS('http://www.w3.org/2000/svg', tag); for (const k in attrs) e.setAttribute(k, attrs[k]); return e; }
+
+function drawStacked(all, q) {
+  const W = 560, rowH = 44, L = 150, R = 70, T = 8, H = T + all.length * rowH + 28;
+  const max = Math.max(...all.map(s => s.total)) || 1;
+  const x = v => L + v / max * (W - L - R);
+  const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, width: '100%', role: 'img', 'aria-label': 'Stacked bar chart of stage inventory per scenario' });
+  // grid
+  const ticks = niceTicks(0, max, 5);
+  ticks.forEach(t => { svg.appendChild(svgEl('line', { x1: x(t), x2: x(t), y1: T, y2: H - 28, stroke: '#23304A', 'stroke-width': 1 })); const tx = svgEl('text', { x: x(t), y: H - 12, 'text-anchor': 'middle', fill: '#94A3B8', 'font-size': 11 }); tx.textContent = fmt(t, 0); svg.appendChild(tx); });
+  all.forEach((s, i) => {
+    const y = T + i * rowH + 8; let left = 0;
+    const lab = svgEl('text', { x: L - 10, y: y + 16, 'text-anchor': 'end', fill: '#E2E8F0', 'font-size': 11.5 });
+    const short = s.name.replace(' (design reference)', '').replace('Candidate sequence', 'Candidate');
+    lab.textContent = short.length > 22 ? short.slice(0, 21) + '…' : short; svg.appendChild(lab);
+    s.stages.forEach((st, j) => {
+      const raw = x(left + st.vol) - x(left);
+      const w = Math.max(0, raw - (j ? 2 : 0));
+      const r = svgEl('rect', { x: x(left) + (j ? 2 : 0), y, width: w, height: 24, rx: j === s.stages.length - 1 ? 4 : 0, fill: `var(--s${j + 1})` });
+      tip(r, `${s.name} · ${st.name}: ${fmt(st.vol, 2)} m³ (${fmt(st.min, 1)} min)`);
+      svg.appendChild(r); left += st.vol;
+    });
+    const v = svgEl('text', { x: x(left) + 8, y: y + 16, fill: '#F8FAFC', 'font-size': 12, 'font-weight': 600 }); v.textContent = fmt(s.total, 1) + ' m³'; svg.appendChild(v);
+  });
+  const xl = svgEl('text', { x: W - R + 4, y: H - 12, fill: '#94A3B8', 'font-size': 10.5 }); xl.textContent = 'm³'; svg.appendChild(xl);
+  $('chart1').replaceChildren(svg);
+}
+
+function drawTornado(rows, base) {
+  const W = 560, rowH = 40, L = 150, R = 130, T = 8, H = T + rows.length * rowH + 28;
+  const maxd = Math.max(...rows.map(r => Math.max(Math.abs(r.lo - base), Math.abs(r.hi - base)))) || 1;
+  const x0 = L + (W - L - R) / 2, sc = (W - L - R) / 2 / maxd;
+  const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, width: '100%', role: 'img', 'aria-label': 'Tornado chart of sensitivity to stage duration' });
+  svg.appendChild(svgEl('line', { x1: x0, x2: x0, y1: T, y2: H - 28, stroke: '#94A3B8', 'stroke-width': 1 }));
+  rows.forEach((r, i) => {
+    const y = T + i * rowH + 8;
+    const lab = svgEl('text', { x: L - 10, y: y + 16, 'text-anchor': 'end', fill: '#E2E8F0', 'font-size': 11.5 }); lab.textContent = r.stage.length > 22 ? r.stage.slice(0, 21) + '…' : r.stage; svg.appendChild(lab);
+    const dl = (r.lo - base) * sc, dh = (r.hi - base) * sc;
+    const a = svgEl('rect', { x: x0 + Math.min(0, dl), y, width: Math.max(Math.abs(dl) - 1, 0), height: 24, fill: 'var(--s1)', rx: 3 }); tip(a, `${r.stage} −50 %: ${fmt(r.lo, 2)} m³ (${fmt(r.lo - base, 2)})`); svg.appendChild(a);
+    const b = svgEl('rect', { x: x0 + 1, y, width: Math.max(dh - 1, 0), height: 24, fill: 'var(--s2)', rx: 3 }); tip(b, `${r.stage} +50 %: ${fmt(r.hi, 2)} m³ (+${fmt(r.hi - base, 2)})`); svg.appendChild(b);
+    const v = svgEl('text', { x: x0 + dh + 8, y: y + 16, fill: '#F8FAFC', 'font-size': 11.5 }); v.textContent = `±${fmt(r.span / 2, 2)} m³ · ${Math.round(r.share * 100)} % of τ`; svg.appendChild(v);
+  });
+  const lg = svgEl('text', { x: L, y: H - 10, fill: '#94A3B8', 'font-size': 11 }); lg.innerHTML = `<tspan fill="var(--s1)">■</tspan> −50 %   <tspan fill="var(--s2)">■</tspan> +50 %   · base ${fmt(base, 2)} m³`; svg.appendChild(lg);
+  $('chart2').replaceChildren(svg);
+}
+
+function niceTicks(min, max, n) {
+  const span = max - min, raw = span / n, p = Math.pow(10, Math.floor(Math.log10(raw))), m = raw / p;
+  const step = (m < 1.5 ? 1 : m < 3 ? 2 : m < 7 ? 5 : 10) * p; const out = [];
+  for (let v = 0; v <= max + 1e-9; v += step) out.push(v); return out;
+}
+
+// ---------- CSV ----------
+$('dl').addEventListener('click', () => {
+  if (!last) return;
+  const rows = [['scenario', 'stage', 'duration_min', 'volume_m3', 'ratio_to_candidate']];
+  last.all.forEach((s, i) => { rows.push([s.name, 'TOTAL', s.tau, s.total, i === 0 ? 1 : s.total / last.all[0].total]); s.stages.forEach(st => rows.push([s.name, st.name, st.min, st.vol, ''])); });
+  rows.push([]); rows.push(['Q_m3_per_day', last.q]); rows.push(['water_depth_m', last.depth ?? '']); rows.push(['plan_area_m2', last.area ?? '']);
+  rows.push(['dose_g_per_m3', last.dose ?? '']); rows.push(['reuse_fraction', last.reuse ?? '']);
+  rows.push(['formula', 'V = Q * tau_min / 1440']); rows.push(['reference', 'Design reference durations from 9VAC25-790-850']);
+  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = 'hydraulic_inventory_results.csv'; a.click();
+});
+$('reset').addEventListener('click', () => { for (const k in DEFAULTS) $(k).value = DEFAULTS[k]; compute(); });
+document.querySelectorAll('input').forEach(el => el.addEventListener('input', compute));
+
+selfCheck();
+compute();
+</script>
+</body>
+</html>

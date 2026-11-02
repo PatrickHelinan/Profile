@@ -1,0 +1,146 @@
+{
+ "_comment": "Emission-factor register for Case B. Every factor carries source, year, region, boundary and a verification status. 'verified' = read from the primary document in this work; 'secondary' = taken from sources that cite the primary, primary not opened; 'gap' = no defensible value found, user must supply. Values are never silently defaulted when status is 'gap'.",
+ "grid": {
+  "SG_2024": {
+   "value": 0.401,
+   "unit": "kg CO2/kWh",
+   "source": "EMA, Singapore Energy Statistics, Table T2.3 Electricity Grid Emission Factor (data year 2024, revised)",
+   "url": "https://www.ema.gov.sg/content/dam/corporate/resources/singapore-energy-statistics/excel/SES_tabular.xlsx.coredownload.xlsx",
+   "landing_page": "https://www.ema.gov.sg/resources/singapore-energy-statistics/chapter2",
+   "region": "Singapore",
+   "year": 2024,
+   "boundary": "Generation-weighted average CO2 per kWh net generation (operating margin); CO2 only",
+   "status": "verified",
+   "note": "Read from SES_tabular.xlsx sheet T2.3 on 2026-11-02. Sheet note: 'The 2024 GEF has been revised from 0.402 kg CO2/kWh to 0.401 kg CO2/kWh.' 2023 = 0.412; 2025 = 0.404 (latest column)."
+  },
+  "CN_2022_national": {
+   "value": 0.5366,
+   "unit": "kg CO2/kWh",
+   "source": "生态环境部、国家统计局公告 2024 年第 33 号：2022 年电力二氧化碳排放因子",
+   "url": "https://www.mee.gov.cn/xxgk2018/xxgk/xxgk01/202412/t20241226_1099413.html",
+   "region": "China, national average",
+   "year": 2022,
+   "boundary": "Consumption-based average; CO2 only",
+   "status": "verified",
+   "note": "Regional values in the same notice, e.g. East China 0.5617, Southern 0.3869."
+  },
+  "SG_2025": {
+   "value": 0.404,
+   "unit": "kg CO2/kWh",
+   "source": "EMA, Singapore Energy Statistics, Table T2.3 (data year 2025, latest column)",
+   "url": "https://www.ema.gov.sg/content/dam/corporate/resources/singapore-energy-statistics/excel/SES_tabular.xlsx.coredownload.xlsx",
+   "region": "Singapore",
+   "year": 2025,
+   "boundary": "Operating margin; CO2 only",
+   "status": "verified",
+   "note": "Read from SES_tabular.xlsx T2.3 on 2026-11-02 (0.40442, shown to 3 d.p.). Check whether EMA labels it provisional."
+  }
+ },
+ "chemicals": {
+  "FeCl3_40pct_iron_oxide_route": {
+   "value": 0.395,
+   "unit": "kg CO2e/kg product",
+   "active_content": "138 g Fe3+/kg",
+   "source": "INCOPA, Life Cycle Analysis of Leading Coagulants, Executive Summary (2013, rev. 2014)",
+   "url": "https://www.incopa.org/wp-content/uploads/2019/02/INCOPA_LCA_Executive_Summary_web.pdf",
+   "region": "Europe",
+   "year": 2014,
+   "boundary": "Cradle-to-gate; IPCC 2007 GWP100",
+   "status": "verified"
+  },
+  "FeCl3_40pct_pickling_route": {
+   "value": 0.135,
+   "unit": "kg CO2e/kg product",
+   "active_content": "138 g Fe3+/kg",
+   "source": "INCOPA 2014",
+   "url": "https://www.incopa.org/wp-content/uploads/2019/02/INCOPA_LCA_Executive_Summary_web.pdf",
+   "region": "Europe",
+   "year": 2014,
+   "boundary": "Cradle-to-gate; IPCC 2007 GWP100",
+   "status": "verified"
+  },
+  "PAC": {
+   "value": 0.537,
+   "unit": "kg CO2e/kg product",
+   "active_content": "90 g Al3+/kg",
+   "source": "INCOPA 2014",
+   "url": "https://www.incopa.org/wp-content/uploads/2019/02/INCOPA_LCA_Executive_Summary_web.pdf",
+   "region": "Europe",
+   "year": 2014,
+   "boundary": "Cradle-to-gate; IPCC 2007 GWP100",
+   "status": "verified"
+  },
+  "PAM": {
+   "value": 4.76,
+   "unit": "kg CO2e/kg",
+   "source": "Carbonfact material database (PEF-aligned, proprietary)",
+   "url": "https://www.carbonfact.com/materials/polyacrylamide",
+   "region": "global average",
+   "year": 2024,
+   "boundary": "Cradle-to-gate",
+   "status": "secondary",
+   "note": "Commercial database, not peer-reviewed; replace with ecoinvent or supplier EPD before formal use."
+  },
+  "Fe3O4_nanocoagulant": {
+   "value": null,
+   "unit": "kg CO2e/kg Fe3O4",
+   "source": "DATA GAP",
+   "status": "gap",
+   "note": "Five LCA papers checked (Arteaga-Díaz 2019 Appl. Sci.; Patiño-Ruiz 2021 ACS Omega; Fuentes 2024 ACS Sustain. Chem. Eng.; Yunus 2025 RSC Sustain.; micromixer LCA PMC9230433). None accessible here reports a kg CO2e/kg value. User to supply with citation.",
+   "lower_bound": {
+    "value": 2.07,
+    "unit": "kg CO2e/kg Fe3O4",
+    "method": "Precursor iron only: INCOPA FeCl3 (iron-oxide route) 0.395 kg CO2e per kg of 13.8 % Fe product = 2.862 kg CO2e/kg Fe; Fe3O4 is 72.36 % Fe by mass; 2.862 x 0.7236 = 2.07. Treats Fe2+ precursor as FeCl3-equivalent. Excludes NaOH, heating, washing, drying, nano-processing and silica coating.",
+    "status": "derived lower bound"
+   },
+   "reference_estimate": {
+    "value": null,
+    "unit": "kg CO2e/kg Fe3O4",
+    "method": "Bottom-up cradle-to-gate estimate for aqueous coprecipitation (FeCl2 + 2 FeCl3 + 8 NaOH -> Fe3O4 + 8 NaCl + 4 H2O), computed in carbon_audit.fe3o4_bottom_up() from stoichiometric reagent masses, NaOH excess, process water heated to reaction temperature, evaporation of wash-cake moisture, and auxiliary electricity. Reagent factors: FeCl3 INCOPA (anhydrous basis = 0.395/0.40); FeCl2 proxied by FeCl3 per kg Fe (no FeCl2 factor found); NaOH Euro Chlor 0.86. Energy via the selected grid factor. Excludes silica coating, packaging, transport and nano-specific processing.",
+    "status": "estimated",
+    "note": "Value is filled at run time; see README for the default assumptions and the low/high range."
+   }
+  },
+  "NaOH": {
+   "value": 0.86,
+   "unit": "kg CO2e/kg product",
+   "source": "Euro Chlor, An Eco-profile and Environmental Product Declaration of the European Chlor-Alkali Industry (data year 2011, published 2013)",
+   "url": "https://www.eurochlor.org/wp-content/uploads/2019/03/chlorine_eco-profile_synthesis.pdf",
+   "region": "Europe",
+   "year": 2013,
+   "boundary": "Cradle-to-gate; mass allocation (stoichiometric for salt); mercury/diaphragm/membrane mix",
+   "status": "verified",
+   "note": "Document does not state whether 'product' is 100 % NaOH or 50 % solution; applied here per kg NaOH 100 % (conservative if the basis is 50 %)."
+  }
+ },
+ "sludge": {
+  "landfill_inert": {
+   "value": null,
+   "unit": "kg CO2e/t wet",
+   "source": "DATA GAP",
+   "status": "gap",
+   "note": "UK DEFRA 2024 'major changes' document gives only percentage changes; the full factor table was not opened. Supply the factor for the actual disposal route (landfill, co-processing, reuse)."
+  },
+  "transport_hgv": {
+   "value": null,
+   "unit": "kg CO2e/t.km",
+   "source": "DATA GAP",
+   "status": "gap",
+   "note": "Supply DEFRA/ecoinvent HGV factor and haul distance."
+  }
+ },
+ "stoichiometry": {
+  "FeCl3_to_FeOH3": {
+   "value": 0.659,
+   "unit": "kg Fe(OH)3 per kg anhydrous FeCl3",
+   "method": "M(Fe(OH)3)=106.87 / M(FeCl3)=162.20",
+   "status": "verified"
+  },
+  "Fe_fraction_in_Fe3O4": {
+   "value": 0.7236,
+   "unit": "kg Fe per kg Fe3O4",
+   "method": "3x55.845 / 231.533",
+   "status": "verified"
+  }
+ }
+}

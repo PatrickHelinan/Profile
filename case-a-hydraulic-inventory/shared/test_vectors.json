@@ -1,0 +1,43 @@
+{
+  "_comment": "Shared test vectors for the Python module and the web calculator. Expected values for case 'paper_1000' are taken from Paper A Fig. 5 source data (Fig5_Hydraulic.csv) and Section 3.5 text; tolerance is absolute m3 unless noted.",
+  "min_per_day": 1440,
+  "cases": [
+    {
+      "id": "paper_1000",
+      "q_m3_per_day": 1000,
+      "stages": {"Mixing": 2, "Field-free contact": 5, "Magnetic treatment": 10},
+      "expect": {
+        "tau_eq_min": 17,
+        "stage_volumes_m3": {"Mixing": 1.3888888888888888, "Field-free contact": 3.4722222222222223, "Magnetic treatment": 6.944444444444445},
+        "total_volume_m3": 11.805555555555555,
+        "reference_totals_m3": {"Reactor-clarifier (design reference)": 104.16666666666667, "Conventional clarification (design reference)": 180.55555555555554},
+        "reference_ratios": {"Reactor-clarifier (design reference)": 8.823529411764707, "Conventional clarification (design reference)": 15.294117647058824},
+        "reported_rounded": {"total_volume_m3": 11.8, "ratios": [8.8, 15.3], "reference_totals_m3": [104.2, 180.6]}
+      },
+      "tolerance": 1e-9
+    },
+    {
+      "id": "scale_linear_5000",
+      "q_m3_per_day": 5000,
+      "stages": {"Mixing": 2, "Field-free contact": 5, "Magnetic treatment": 10},
+      "expect": {"tau_eq_min": 17, "total_volume_m3": 59.02777777777778},
+      "tolerance": 1e-9
+    },
+    {
+      "id": "zero_stage_warns",
+      "q_m3_per_day": 1000,
+      "stages": {"Mixing": 0, "Field-free contact": 5, "Magnetic treatment": 10},
+      "expect": {"tau_eq_min": 15, "total_volume_m3": 10.416666666666666, "warning_contains": "zero duration"},
+      "tolerance": 1e-9
+    }
+  ],
+  "errors": [
+    {"id": "negative_flow", "q_m3_per_day": -10, "stages": {"Mixing": 2}, "error_contains": "positive"},
+    {"id": "missing_flow", "q_m3_per_day": null, "stages": {"Mixing": 2}, "error_contains": "missing"},
+    {"id": "negative_stage", "q_m3_per_day": 1000, "stages": {"Mixing": -2}, "error_contains": "negative"}
+  ],
+  "warnings": [
+    {"id": "unit_flow", "q_m3_per_day": 2000000, "stages": {"Mixing": 2}, "warning_contains": "check units"},
+    {"id": "unit_stage", "q_m3_per_day": 1000, "stages": {"Mixing": 3000}, "warning_contains": "check units"}
+  ]
+}

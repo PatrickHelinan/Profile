@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0B0F17">
+  <title>Separation-Stage Carbon Audit</title>
+  <meta name="description" content="Carbon data audit for a post-precipitation separation stage: Scope 2 electricity from nameplate data, Scope 3 chemicals and sludge with sourced emission factors, explicit data gaps, sensitivity. Compares magnetic nanocoagulation with conventional chemical clarification per 1000 m³.">
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0B0F17; --card: #131B2E; --border: #23304A; --border-hover: #33476B;
+      --ink: #F8FAFC; --ink-hi: #E2E8F0; --ink-2: #94A3B8;
+      --accent: #38BDF8; --accent-contrast: #082F49;
+      --badge-bg: #0C2D48; --badge-text: #7DD3FC; --badge-border: #1E4976;
+      --s2: #3987e5; --s31: #d95926; --s35: #199e70;
+      --warn: #fab219; --crit: #e66767; --good: #4ade80;
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink-2); font-size: 15px; line-height: 1.6; }
+    h1, h2, h3, p { margin: 0; } h1, h2, h3 { color: var(--ink); }
+    h1 { font-size: 30px; line-height: 1.2; letter-spacing: -0.02em; }
+    h2 { font-size: 18px; font-weight: 600; } h3 { font-size: 14.5px; font-weight: 600; margin: 16px 0 6px; }
+    strong { color: var(--ink-hi); font-weight: 600; }
+    a { color: var(--accent); text-underline-offset: 4px; }
+    .mono { font-family: "JetBrains Mono", ui-monospace, Menlo, monospace; font-size: 0.92em; }
+    .container { max-width: 1040px; margin-inline: auto; padding: 40px 24px 64px; }
+    .crumb { font-size: 13px; margin-bottom: 20px; }
+    .lede { max-width: 72ch; margin-top: 12px; color: var(--ink-hi); }
+    .note { max-width: 72ch; margin-top: 10px; font-size: 13.5px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 28px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; min-width: 0; }
+    .card .sub { font-size: 13px; margin-bottom: 10px; }
+    .tag { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--badge-border); background: var(--badge-bg); color: var(--badge-text); vertical-align: middle; white-space: nowrap; }
+    .tag.ext { background: transparent; border-color: var(--border); color: var(--ink-2); }
+    .tag.ok { background: #0f2e1a; border-color: #1f6b2a; color: var(--good); }
+    .tag.sec { background: #2e2409; border-color: #6b5214; color: #fcd34d; }
+    .tag.gap { background: #3a1313; border-color: #7f1d1d; color: #fca5a5; }
+    .tag.user { background: #1e1b4b; border-color: #4338ca; color: #c7d2fe; }
+    label { display: block; font-size: 12.5px; color: var(--ink-hi); margin-bottom: 3px; }
+    .field { margin-bottom: 10px; }
+    .hint { font-size: 11.5px; color: var(--ink-2); margin-top: 2px; }
+    input[type=number], input[type=text], select { width: 100%; padding: 7px 10px; border-radius: 7px; border: 1px solid var(--border); background: var(--bg); color: var(--ink); font: inherit; font-size: 13.5px; }
+    input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    input[aria-invalid="true"] { border-color: var(--crit); }
+    .eq { display: grid; grid-template-columns: 1.6fr 0.8fr 0.7fr 0.7fr; gap: 8px; align-items: end; margin-bottom: 8px; }
+    .eq .hdr { font-size: 11px; color: var(--ink-2); }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    .msgs { margin-top: 8px; display: grid; gap: 6px; }
+    .msg { font-size: 13px; padding: 8px 10px; border-radius: 8px; border: 1px solid; display: flex; gap: 8px; }
+    .msg.err { border-color: var(--crit); color: #fca5a5; } .msg.warn { border-color: var(--warn); color: #fcd34d; }
+    .kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .kpi { padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; }
+    .kpi .v { font-size: 24px; font-weight: 700; color: var(--ink); line-height: 1.15; }
+    .kpi .l { font-size: 12px; margin-top: 4px; }
+    .kpi.inc { border-color: #7f1d1d; }
+    table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 10px; }
+    th, td { text-align: left; padding: 6px 6px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    th { color: var(--ink-hi); font-weight: 600; } td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    tr.group th { background: #0f1626; color: var(--ink); padding-top: 9px; }
+    .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+    .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12.5px; margin-top: 8px; }
+    .chart { margin-top: 12px; } svg text { font-family: inherit; }
+    .tt { position: fixed; pointer-events: none; background: #0B0F17; border: 1px solid var(--border-hover); color: var(--ink-hi); font-size: 12.5px; padding: 6px 9px; border-radius: 6px; display: none; z-index: 5; white-space: nowrap; }
+    .btn { display: inline-flex; align-items: center; gap: 8px; min-height: 38px; padding: 7px 13px; border-radius: 8px; border: 1px solid var(--border-hover); background: transparent; color: var(--ink-hi); font: inherit; font-size: 13px; cursor: pointer; }
+    .btn:hover { border-color: var(--accent); color: var(--ink); } .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-contrast); font-weight: 700; }
+    .btn.small { min-height: 30px; padding: 3px 9px; font-size: 12px; }
+    .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+    details { margin-top: 20px; border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; background: var(--card); }
+    summary { cursor: pointer; color: var(--ink-hi); font-weight: 600; }
+    details p, details li, details td, details th { font-size: 13px; } details ul { padding-left: 18px; }
+    .selfcheck { font-size: 12.5px; margin-top: 24px; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); }
+    .selfcheck.ok { border-color: #1f6b2a; } .selfcheck.bad { border-color: var(--crit); }
+    footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--border); font-size: 13px; }
+    @media (max-width: 820px) {
+      .container { padding: 28px 16px 48px; } h1 { font-size: 26px; }
+      .grid, .kpis, .row2, .row3 { grid-template-columns: 1fr; }
+      .eq { grid-template-columns: 1fr 1fr 1fr; } .eq .name { grid-column: 1 / -1; }
+      table { font-size: 12px; display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; } th, td { padding: 5px 4px; }
+      td.num, th.num { white-space: normal; }
+      .tt { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <p class="crumb"><a href="../../">Linan He</a> · Case study B</p>
+    <h1>Carbon data audit for a post-precipitation separation stage</h1>
+    <p class="lede">Same scenario as <a href="../case-a/">Case A</a>, now as an emissions ledger per 1000 m³ treated. Electricity is estimated from nameplate power × load factor × running hours. Every emission factor carries its source, year, region, boundary and a verification status. A factor I could not verify is a <span class="tag gap">gap</span>: the line is shown as missing and the total is flagged incomplete, rather than filled with a guess.</p>
+    <p class="note">Boundary: separation stage only. Upstream calcium precipitation and the CaF₂ sludge itself are common to both routes and excluded; only route-specific additional solids are counted. A chemical separation stage has no biological CH₄/N₂O source, so Scope 1 is reported as an explicit zero with the reason, not omitted. This is a comparative screening, not an organisational inventory or a full LCA.</p>
+
+    <div class="grid">
+      <section class="card" aria-labelledby="in-h">
+        <h2 id="in-h">Inputs</h2>
+        <p class="sub">Nameplates are reference values with a stated engineering basis (Camp–Stein for mixers, ρgQH/η for pumps, standard IEC motor sizes; drum and scraper drives are reference assumptions). Replace with plant data when available.</p>
+
+        <div class="field"><label for="grid">Grid emission factor</label>
+          <select id="grid"><option value="SG_2024">Singapore 2024 — 0.401 kg CO₂/kWh (EMA SES T2.3, revised)</option><option value="SG_2025">Singapore 2025 — 0.404 kg CO₂/kWh (EMA SES T2.3, latest)</option><option value="CN_2022_national">China 2022 national — 0.5366 kg CO₂/kWh (MEE 2024 No. 33)</option></select></div>
+
+        <h3>Route M — magnetic nanocoagulation <span class="tag ext">nameplate × load × hours</span></h3>
+        <div class="eq"><span class="hdr name">Unit</span><span class="hdr">kW</span><span class="hdr">load 0–1</span><span class="hdr">h / 1000 m³</span></div>
+        <div class="eq" data-route="M"><input class="name" type="text" value=""><input type="number" step="any" value=""><input type="number" step="any" value=""><input type="number" step="any" value="24"></div>
+        <div class="eq" data-route="M"><input class="name" type="text" value=""><input type="number" step="any" value=""><input type="number" step="any" value=""><input type="number" step="any" value="24"></div>
+        <div class="eq" data-route="M"><input class="name" type="text" value=""><input type="number" step="any" value=""><input type="number" step="any" value=""><input type="number" step="any" value="24"></div>
+        <div class="eq" data-route="M"><input class="name" type="text" value=""><input type="number" step="any" value=""><input type="number" step="any" value=""><input type="number" step="any" value="24"></div>
+        <div class="hint">Continuous unit sized for 1000 m³/d runs 24 h per 1000 m³. Permanent-magnet separator: drive only; an electromagnet adds coil power — enter it as a separate line.</div>
+        <div class="row3" style="margin-top:10px">
+          <div class="field"><label for="dose">Fe₃O₄ dose (g/m³)</label><input id="dose" type="number" step="any" value="50"><div class="hint">Manuscript batch dose, 50 mg/L.</div></div>
+          <div class="field"><label for="reuse">Per-cycle reuse fraction (0–1)</label><input id="reuse" type="number" step="any" value="0.81"><div class="hint">0.659^(1/2): Paper B, 65.9 % of inventory entered Cycle 3 after two recoveries, equal loss per cycle assumed.</div></div>
+          <div class="field"><label for="fe3o4f">Fe₃O₄ factor (kg CO₂e/kg)</label><input id="fe3o4f" type="number" step="any" value="" placeholder="gap — enter or estimate"><div class="hint"><button class="btn small" type="button" id="est">Use bottom-up estimate</button> <button class="btn small" type="button" id="lb">Floor 2.07</button></div></div>
+        </div>
+        <div class="field"><label for="fe3o4src">Fe₃O₄ factor source (citation)</label><input id="fe3o4src" type="text" value="" placeholder="e.g. Author (year), journal, functional unit"></div>
+
+        <h3>Route C — conventional chemical clarification</h3>
+        <div class="eq"><span class="hdr name">Unit</span><span class="hdr">kW</span><span class="hdr">load 0–1</span><span class="hdr">h / 1000 m³</span></div>
+        <div class="eq" data-route="C"><input class="name" type="text" value=""><input type="number" step="any" value=""><input type="number" step="any" value=""><input type="number" step="any" value="24"></div>
+        <div class="eq" data-route="C"><input class="name" type="text" value=""><input type="number" step="any" value=""><input type="number" step="any" value=""><input type="number" step="any" value="24"></div>
+        <div class="eq" data-route="C"><input class="name" type="text" value=""><input type="number" step="any" value=""><input type="number" step="any" value=""><input type="number" step="any" value="24"></div>
+        <div class="row3" style="margin-top:10px">
+          <div class="field"><label for="fecl3">FeCl₃ 40 % product (g/m³)</label><input id="fecl3" type="number" step="any" value="30"></div>
+          <div class="field"><label for="fecl3route">FeCl₃ production route</label><select id="fecl3route"><option value="FeCl3_40pct_iron_oxide_route">Iron-oxide route 0.395</option><option value="FeCl3_40pct_pickling_route">Pickling-acid route 0.135</option></select></div>
+          <div class="field"><label for="pam">PAM polymer (g/m³)</label><input id="pam" type="number" step="any" value="1"></div>
+        </div>
+
+        <h3>Sludge (both routes) <span class="tag gap">factors are gaps</span></h3>
+        <div class="row3">
+          <div class="field"><label for="ds">Dry solids in wet sludge (0–1)</label><input id="ds" type="number" step="any" value="0.2"></div>
+          <div class="field"><label for="haul">Haul distance (km)</label><input id="haul" type="number" step="any" value="30"></div>
+          <div></div>
+          <div class="field"><label for="sdf">Disposal factor (kg CO₂e/t wet)</label><input id="sdf" type="number" step="any" value="" placeholder="gap — enter"></div>
+          <div class="field"><label for="trf">Transport factor (kg CO₂e/t·km)</label><input id="trf" type="number" step="any" value="" placeholder="gap — enter"></div>
+          <div class="field"><label for="ssrc">Sludge factor source</label><input id="ssrc" type="text" value="" placeholder="e.g. DEFRA 2024 table name"></div>
+        </div>
+
+        <div class="actions"><button class="btn primary" id="reset" type="button">Reset to reference values</button><button class="btn" id="dl" type="button">Download ledger (CSV)</button></div>
+        <div class="msgs" id="msgs" aria-live="polite"></div>
+      </section>
+
+      <section class="card" aria-labelledby="out-h">
+        <h2 id="out-h">Results</h2>
+        <p class="sub">kg CO₂e per 1000 m³ treated. A total marked incomplete excludes one or more gap lines.</p>
+        <div class="kpis"><div class="kpi" id="kM"><div class="v">—</div><div class="l">Route M total</div></div><div class="kpi" id="kC"><div class="v">—</div><div class="l">Route C total</div></div></div>
+        <p class="note" id="breakeven" style="margin-top:10px;max-width:none"></p>
+        <div class="chart" id="chart1"></div>
+        <div class="legend"><span><i class="sw" style="background:var(--s2)"></i>Scope 2 electricity</span><span><i class="sw" style="background:var(--s31)"></i>Scope 3.1 chemicals</span><span><i class="sw" style="background:var(--s35)"></i>Scope 3.5 sludge</span></div>
+
+        <table aria-label="Emission ledger"><thead><tr><th>Source</th><th class="num">Activity</th><th class="num">Factor</th><th>Status</th><th class="num">kg CO₂e</th></tr></thead><tbody id="tbody"></tbody></table>
+
+        <h3>Sensitivity — route M, one activity ±30 %</h3>
+        <div class="chart" id="chart2"></div>
+      </section>
+    </div>
+
+    <details open>
+      <summary>Factor register — source, year, region, boundary, status</summary>
+      <table id="factors"><thead><tr><th>Factor</th><th class="num">Value</th><th>Unit</th><th>Source</th><th>Boundary</th><th>Status</th></tr></thead><tbody></tbody></table>
+      <p style="margin-top:10px"><span class="tag ok">verified</span> read from the primary document · <span class="tag sec">secondary</span> taken from sources citing the primary, primary not opened · <span class="tag gap">gap</span> no defensible value found, user must supply · <span class="tag user">user</span> entered on this page.</p>
+    </details>
+
+    <details>
+      <summary>Method, formulas and what this is not</summary>
+      <ul>
+        <li><strong>Electricity</strong>: kWh = nameplate kW × load factor × running hours per 1000 m³. Scope 2 = kWh × grid factor (location-based).</li>
+        <li><strong>Nanocoagulant make-up</strong>: kg = dose (g/m³) × 1000 m³ / 1000 × (1 − reuse fraction). The reuse fraction is a per-cycle recovery assumption, not the manuscript's "65.9 % of initial inventory entering Cycle 3".</li>
+        <li><strong>Fe₃O₄ bottom-up estimate</strong>: FeCl₂ + 2 FeCl₃ + 8 NaOH → Fe₃O₄ + 8 NaCl + 4 H₂O. Per kg Fe₃O₄: 1.40 kg FeCl₃, 0.55 kg FeCl₂, 1.38 kg NaOH stoichiometric (+20 % excess). Factors: FeCl₃ INCOPA iron-oxide route on an anhydrous basis (0.395/0.40); FeCl₂ proxied by FeCl₃ per kg Fe (no FeCl₂ factor found); NaOH Euro Chlor 0.86. Energy: 20 L process water heated 25→80 °C, 3 kg cake water evaporated per kg solid, 80 % heat efficiency, 0.5 kWh/kg auxiliaries, all as grid electricity. Excludes silica coating, packaging, transport and brine treatment. Default ≈ 5.3; 4.3–6.5 across low/high assumption sets.</li>
+        <li><strong>Reference nameplates</strong>: mixers from Camp–Stein P = G²μV with textbook G (rapid mix 600 s⁻¹, flocculation/contact 50 s⁻¹) and stage volume V = Qτ from Case A; pumps from ρgQH/η (η = 0.5; recirculation 5 % Q, sludge 1 % Q, 10 m); shaft power ÷ 0.85 drive efficiency rounded up to the next IEC motor size, load factor = required ÷ nameplate. Drum drive 0.75 kW at 0.6 and scraper 0.37 kW at 0.8 are reference assumptions. Feed pumping is common to both routes and excluded.</li>
+        <li><strong>Carbon break-even</strong>: reuse at which route M equals route C: make-up allowed = (C total − M non-chemical) ÷ f<sub>Fe₃O₄</sub>; reuse = 1 − make-up ÷ dose.</li>
+        <li><strong>Fe₃O₄ precursor lower bound</strong>: INCOPA FeCl₃ (iron-oxide route) 0.395 kg CO₂e per kg of 13.8 % Fe product → 2.862 kg CO₂e/kg Fe; Fe₃O₄ is 72.36 % Fe → 2.07 kg CO₂e/kg Fe₃O₄. Excludes NaOH, heating, washing, drying, nano-processing and any silica coating. It is a floor, not an estimate.</li>
+        <li><strong>Hydroxide sludge</strong>: Fe(OH)₃ dry = anhydrous FeCl₃ × 106.87/162.20; anhydrous = 0.40 × product mass. Wet tonnes = dry / dry-solids fraction.</li>
+        <li><strong>Scope 1</strong>: IPCC 2019 Refinement Vol. 5 Ch. 6 covers biological treatment; a chemical separation stage has no process CH₄/N₂O source. Reported as 0 with this reason.</li>
+        <li><strong>Not included</strong>: upstream precipitation chemicals (CaCl₂), equipment embodied carbon, silica-coating reagents, downstream water reuse credits, uncertainty ranges on factors. GWP basis follows each source (INCOPA: IPCC 2007 GWP100; grid factors: CO₂ only).</li>
+        <li><strong>Self-check</strong>: on load the page recomputes fixed vectors (kWh arithmetic, FeCl₃ line, lower-bound derivation, gap handling) and compares with the Python test suite's expectations.</li>
+        <li><strong>AI use</strong>: drafted with AI assistance; factor lookups were made against the sources listed and their status recorded honestly, including the ones that could not be opened.</li>
+      </ul>
+    </details>
+
+    <div class="selfcheck" id="selfcheck">Self-check pending…</div>
+    <footer>Linan He · <a href="https://github.com/PatrickHelinan/water-engineering-cases" id="repo">Python module, factor register and tests</a> · No client or plant data are used; all inputs on this page are placeholders or yours.</footer>
+  </div>
+  <div class="tt" id="tt" role="tooltip"></div>
+
+<script>
+// ---------- Factor register (mirrors shared/factors.json) ----------
+const FACTORS = {
+  grid: {
+    SG_2024: { value: 0.401, unit: 'kg CO₂/kWh', source: 'EMA, Singapore Energy Statistics, Table T2.3 (data year 2024; sheet note: revised from 0.402 to 0.401)', year: 2024, region: 'Singapore', boundary: 'Generation-weighted operating margin; CO₂ only', status: 'verified', url: 'https://www.ema.gov.sg/content/dam/corporate/resources/singapore-energy-statistics/excel/SES_tabular.xlsx.coredownload.xlsx' },
+    SG_2025: { value: 0.404, unit: 'kg CO₂/kWh', source: 'EMA, Singapore Energy Statistics, Table T2.3 (data year 2025, latest column)', year: 2025, region: 'Singapore', boundary: 'Operating margin; CO₂ only', status: 'verified', url: 'https://www.ema.gov.sg/content/dam/corporate/resources/singapore-energy-statistics/excel/SES_tabular.xlsx.coredownload.xlsx' },
+    CN_2022_national: { value: 0.5366, unit: 'kg CO₂/kWh', source: '生态环境部、国家统计局公告 2024 年第 33 号', year: 2022, region: 'China national', boundary: 'Consumption average; CO₂ only', status: 'verified', url: 'https://www.mee.gov.cn/xxgk2018/xxgk/xxgk01/202412/t20241226_1099413.html' },
+  },
+  chemicals: {
+    FeCl3_40pct_iron_oxide_route: { value: 0.395, unit: 'kg CO₂e/kg product', source: 'INCOPA LCA of Leading Coagulants, exec. summary (2014)', year: 2014, region: 'Europe', boundary: 'Cradle-to-gate; IPCC 2007 GWP100', status: 'verified', url: 'https://www.incopa.org/wp-content/uploads/2019/02/INCOPA_LCA_Executive_Summary_web.pdf' },
+    FeCl3_40pct_pickling_route: { value: 0.135, unit: 'kg CO₂e/kg product', source: 'INCOPA 2014', year: 2014, region: 'Europe', boundary: 'Cradle-to-gate; IPCC 2007 GWP100', status: 'verified', url: 'https://www.incopa.org/wp-content/uploads/2019/02/INCOPA_LCA_Executive_Summary_web.pdf' },
+    PAC: { value: 0.537, unit: 'kg CO₂e/kg product', source: 'INCOPA 2014', year: 2014, region: 'Europe', boundary: 'Cradle-to-gate; IPCC 2007 GWP100', status: 'verified', url: 'https://www.incopa.org/wp-content/uploads/2019/02/INCOPA_LCA_Executive_Summary_web.pdf' },
+    PAM: { value: 4.76, unit: 'kg CO₂e/kg', source: 'Carbonfact material database (proprietary, PEF-aligned)', year: 2024, region: 'global', boundary: 'Cradle-to-gate', status: 'secondary', url: 'https://www.carbonfact.com/materials/polyacrylamide' },
+    NaOH: { value: 0.86, unit: 'kg CO₂e/kg product', source: 'Euro Chlor eco-profile of the European chlor-alkali industry (data 2011, publ. 2013)', year: 2013, region: 'Europe', boundary: 'Cradle-to-gate; mass allocation; basis (100 % vs 50 %) not stated', status: 'verified', url: 'https://www.eurochlor.org/wp-content/uploads/2019/03/chlorine_eco-profile_synthesis.pdf' },
+    Fe3O4_nanocoagulant: { value: null, unit: 'kg CO₂e/kg Fe₃O₄', source: 'DATA GAP — five LCA papers checked, none accessible here reports kg CO₂e/kg', year: '', region: '', boundary: '', status: 'gap', lower_bound: 2.07 },
+  },
+  sludge: {
+    landfill_inert: { value: null, unit: 'kg CO₂e/t wet', source: 'DATA GAP — DEFRA 2024 full table not opened', status: 'gap' },
+    transport_hgv: { value: null, unit: 'kg CO₂e/t·km', source: 'DATA GAP — supply DEFRA/ecoinvent HGV factor', status: 'gap' },
+  },
+  stoich: { FeCl3_to_FeOH3: 106.87 / 162.20, Fe_in_Fe3O4: 3 * 55.845 / 231.533 },
+};
+
+// ---------- Core (mirrors carbon_audit.py) ----------
+class InputError extends Error {}
+const kwh = e => e.kw * e.lf * e.h;
+function validate(route) {
+  const w = [];
+  for (const e of route.eq) {
+    for (const [k, v] of [['kW', e.kw], ['load', e.lf], ['hours', e.h]]) {
+      if (v === null || Number.isNaN(v)) throw new InputError(`${route.name} / ${e.name}: ${k} is missing.`);
+      if (v < 0) throw new InputError(`${route.name} / ${e.name}: ${k} cannot be negative.`);
+    }
+    if (e.lf > 1) throw new InputError(`${route.name} / ${e.name}: load factor must be 0–1.`);
+    if (e.h > 240) w.push(`${route.name} / ${e.name}: ${e.h} h per 1000 m³ — check units (hours, not minutes).`);
+    if (e.kw > 1000) w.push(`${route.name} / ${e.name}: above 1 MW — check units (kW, not W).`);
+  }
+  for (const c of route.chem) {
+    if (c.kg === null || Number.isNaN(c.kg)) throw new InputError(`${route.name} / ${c.name}: dose is missing.`);
+    if (c.kg < 0) throw new InputError(`${route.name} / ${c.name}: dose cannot be negative.`);
+    if (c.kg > 1e5) w.push(`${route.name} / ${c.name}: above 100 kg/m³ — check units.`);
+    if (c.userFactor !== null && c.userFactor < 0) throw new InputError(`${route.name} / ${c.name}: factor cannot be negative.`);
+  }
+  for (const s of route.sludge) if (s.t < 0) throw new InputError(`${route.name} / ${s.name}: sludge cannot be negative.`);
+  return w;
+}
+function chemFactor(c) {
+  if (c.key) {
+    const f = FACTORS.chemicals[c.key];
+    if (f.status !== 'gap' && f.value !== null) return { v: f.value, src: `${f.source} (${f.year}, ${f.region}; ${f.boundary})`, status: f.status };
+    if (c.userFactor !== null) return { v: c.userFactor, src: c.userSrc || 'user-supplied', status: 'user' };
+    return { v: null, src: f.source, status: 'gap' };
+  }
+  if (c.userFactor !== null) return { v: c.userFactor, src: c.userSrc || 'user-supplied', status: 'user' };
+  return { v: null, src: 'no factor', status: 'gap' };
+}
+function audit(route, gridKey, sl) {
+  const warnings = validate(route); const g = FACTORS.grid[gridKey]; const lines = [];
+  lines.push({ scope: 'Scope 1', source: 'Process CH₄/N₂O', act: 0, actU: '—', f: 0, fsrc: 'No biological source in a chemical separation stage (IPCC 2019 Vol.5 Ch.6 scope)', status: 'n/a', kg: 0 });
+  for (const e of route.eq) { const k = kwh(e); lines.push({ scope: 'Scope 2', source: `Electricity — ${e.name}`, act: k, actU: 'kWh', f: g.value, fsrc: g.source, status: g.status, kg: k * g.value }); }
+  for (const c of route.chem) { const F = chemFactor(c); lines.push({ scope: 'Scope 3.1', source: `Chemical — ${c.name}`, act: c.kg, actU: 'kg', f: F.v, fsrc: F.src, status: F.status, kg: F.v === null ? null : c.kg * F.v }); }
+  for (const s of route.sludge) {
+    lines.push({ scope: 'Scope 3.5', source: `Sludge disposal — ${s.name}`, act: s.t, actU: 't wet', f: sl.sdf, fsrc: sl.sdf === null ? FACTORS.sludge.landfill_inert.source : (sl.src || 'user-supplied'), status: sl.sdf === null ? 'gap' : 'user', kg: sl.sdf === null ? null : s.t * sl.sdf });
+    if (s.km !== null) { const tkm = s.t * s.km; lines.push({ scope: 'Scope 3.5', source: `Sludge transport — ${s.name}`, act: tkm, actU: 't·km', f: sl.trf, fsrc: sl.trf === null ? FACTORS.sludge.transport_hgv.source : (sl.src || 'user-supplied'), status: sl.trf === null ? 'gap' : 'user', kg: sl.trf === null ? null : tkm * sl.trf }); }
+  }
+  const total = lines.reduce((a, l) => a + (l.kg ?? 0), 0);
+  const missing = lines.filter(l => l.kg === null).map(l => l.source);
+  const byScope = {}; for (const l of lines) byScope[l.scope] = (byScope[l.scope] || 0) + (l.kg ?? 0);
+  return { name: route.name, lines, total, missing, complete: missing.length === 0, byScope, warnings };
+}
+const makeup = (dose, reuse) => { if (reuse < 0 || reuse > 1) throw new InputError('Reuse fraction must be 0–1.'); return dose * 1000 / 1000 * (1 - reuse); };
+function tornado(route, gridKey, sl, swing = 0.3) {
+  const base = audit(route, gridKey, sl).total; const rows = [];
+  route.eq.forEach((e, i) => { const mk = s => ({ ...route, eq: route.eq.map((x, j) => j === i ? { ...x, kw: x.kw * s } : x) }); rows.push({ item: `E: ${e.name}`, lo: audit(mk(1 - swing), gridKey, sl).total, hi: audit(mk(1 + swing), gridKey, sl).total }); });
+  route.chem.forEach((c, i) => { const mk = s => ({ ...route, chem: route.chem.map((x, j) => j === i ? { ...x, kg: x.kg * s } : x) }); rows.push({ item: `C: ${c.name}`, lo: audit(mk(1 - swing), gridKey, sl).total, hi: audit(mk(1 + swing), gridKey, sl).total }); });
+  rows.forEach(r => r.span = r.hi - r.lo); rows.sort((a, b) => Math.abs(b.span) - Math.abs(a.span)); return { base, rows };
+}
+
+// ---------- Fe₃O₄ bottom-up estimate (mirrors carbon_audit.fe3o4_bottom_up) ----------
+const MW = { Fe: 55.845, FeCl2: 126.751, FeCl3: 162.204, NaOH: 39.997, Fe3O4: 231.533 };
+function fe3o4BottomUp(gridKey, a = {}) {
+  const o = { naohExcess: 0.20, waterL: 20, tempC: 80, ambC: 25, cakeWater: 3.0, heatEff: 0.80, auxKwh: 0.5, ...a };
+  const mol = 1000 / MW.Fe3O4;
+  const fecl3 = 2 * mol * MW.FeCl3 / 1000, fecl2 = mol * MW.FeCl2 / 1000, naoh = 8 * mol * MW.NaOH / 1000 * (1 + o.naohExcess);
+  const fProd = FACTORS.chemicals.FeCl3_40pct_iron_oxide_route.value; const fFeCl3 = fProd / 0.40; const fFeCl2 = (fProd / 0.138) * (MW.Fe / MW.FeCl2);
+  const fNaOH = FACTORS.chemicals.NaOH.value; const g = FACTORS.grid[gridKey].value;
+  const kwh = (o.waterL * 4.186e-3 * (o.tempC - o.ambC) / o.heatEff + o.cakeWater * 2.26 / o.heatEff) / 3.6 + o.auxKwh;
+  const parts = [['FeCl₃ anhydrous (INCOPA / 0.40)', fecl3 * fFeCl3], ['FeCl₂ anhydrous (FeCl₃ per kg Fe as proxy)', fecl2 * fFeCl2], [`NaOH stoich. + ${Math.round(o.naohExcess * 100)} % (Euro Chlor)`, naoh * fNaOH], [`Process energy ${kwh.toFixed(2)} kWh/kg × grid`, kwh * g]];
+  return { value: parts.reduce((s, p) => s + p[1], 0), parts, reagents: { FeCl3: fecl3, FeCl2: fecl2, NaOH: naoh }, kwh };
+}
+const IEC = [0.18, 0.25, 0.37, 0.55, 0.75, 1.1, 1.5, 2.2, 3.0, 4.0, 5.5, 7.5];
+const campStein = (G, V, mu = 1e-3) => G * G * mu * V;
+const pumpW = (q, H, eff = 0.5) => 1000 * 9.81 * q * H / eff;
+function nameplate(shaftW, eff = 0.85) { const need = shaftW / 1000 / eff; for (const kw of IEC) if (kw >= need) return { kw, lf: need / kw }; return { kw: need, lf: 1 }; }
+function referenceEquipment(q = 1000) {
+  const v = tau => q * tau / 1440;
+  const rm = nameplate(campStein(600, v(2))), cm = nameplate(campStein(50, v(5))), fl = nameplate(campStein(50, v(20)));
+  const rp = nameplate(pumpW(0.05 * q / 86400, 10)), sp = nameplate(pumpW(0.01 * q / 86400, 10));
+  return { M: [['Rapid mixer (2 min stage) — Camp–Stein G=600', rm.kw, rm.lf, 24], ['Contact-tank mixer (5 min stage) — G=50', cm.kw, cm.lf, 24], ['Magnetic drum drive (10 min stage) — ref. assumption', 0.75, 0.6, 24], ['Recovery / recirculation pump — 5 % Q, 10 m', rp.kw, rp.lf, 24]],
+           C: [['Flocculator (20 min stage) — G=50', fl.kw, fl.lf, 24], ['Clarifier scraper (240 min) — ref. assumption', 0.37, 0.8, 24], ['Sludge withdrawal pump — 1 % Q, 10 m', sp.kw, sp.lf, 24]] };
+}
+function breakeven(mNonChem, cTotal, dose, f) { const allowed = (cTotal - mNonChem) / f; const reuse = 1 - allowed / dose; return { allowed, reuse, feasible: reuse >= 0 && reuse <= 1 }; }
+
+// ---------- Self-check (same expectations as test_carbon_audit.py) ----------
+function selfCheck() {
+  const fails = []; const close = (a, b, t = 1e-9) => Math.abs(a - b) <= t;
+  if (!close(kwh({ kw: 1.5, lf: 0.6, h: 24 }), 21.6)) fails.push('kwh');
+  const r1 = audit({ name: 't', eq: [{ name: 'm', kw: 1, lf: 1, h: 10 }], chem: [], sludge: [] }, 'SG_2024', { sdf: null, trf: null });
+  if (!close(r1.total, 4.01)) fails.push('scope2');
+  const r2 = audit({ name: 't', eq: [], chem: [{ name: 'f', kg: 10, key: 'Fe3O4_nanocoagulant', userFactor: null }], sludge: [] }, 'SG_2024', { sdf: null, trf: null });
+  if (r2.complete || r2.total !== 0) fails.push('gap-incomplete');
+  const r3 = audit({ name: 't', eq: [], chem: [{ name: 'f', kg: 10, key: 'Fe3O4_nanocoagulant', userFactor: 2.07 }], sludge: [] }, 'SG_2024', { sdf: null, trf: null });
+  if (!r3.complete || !close(r3.total, 20.7)) fails.push('gap-override');
+  const r4 = audit({ name: 't', eq: [], chem: [{ name: 'f', kg: 10, key: 'FeCl3_40pct_iron_oxide_route', userFactor: 99 }], sludge: [] }, 'SG_2024', { sdf: null, trf: null });
+  if (!close(r4.total, 3.95)) fails.push('verified-not-overridden');
+  if (!close(0.395 / 0.138 * FACTORS.stoich.Fe_in_Fe3O4, FACTORS.chemicals.Fe3O4_nanocoagulant.lower_bound, 0.01)) fails.push('lower-bound');
+  if (!close(makeup(100, 0.66), 34)) fails.push('makeup');
+  const r5 = audit({ name: 't', eq: [], chem: [], sludge: [{ name: 's', t: 0.5, km: 20 }] }, 'SG_2024', { sdf: 10, trf: 0.1 });
+  if (!close(r5.total, 6)) fails.push('sludge');
+  let threw = false; try { audit({ name: 't', eq: [{ name: 'm', kw: 1, lf: 1.5, h: 1 }], chem: [], sludge: [] }, 'SG_2024', { sdf: null, trf: null }); } catch (e) { threw = e instanceof InputError; } if (!threw) fails.push('validation');
+  const bu = fe3o4BottomUp('SG_2024'); const mol = 1000 / MW.Fe3O4;
+  if (!close(bu.reagents.FeCl3, 2 * mol * MW.FeCl3 / 1000, 1e-9) || !close(bu.reagents.NaOH, 8 * mol * MW.NaOH / 1000 * 1.2, 1e-9)) fails.push('bottom-up-stoich');
+  if (!(bu.value > 4 && bu.value < 6)) fails.push('bottom-up-range');
+  if (nameplate(500).kw !== 0.75 || !close(campStein(600, 1000 * 2 / 1440), 360000 * 1e-3 * 1000 * 2 / 1440, 1e-9)) fails.push('reference-equipment');
+  const be = breakeven(11, 20, 50, 5); if (!close(be.allowed, 1.8, 1e-9) || !close(be.reuse, 1 - 1.8 / 50, 1e-9)) fails.push('breakeven');
+  const el = document.getElementById('selfcheck');
+  if (fails.length) { el.className = 'selfcheck bad'; el.textContent = 'Self-check FAILED: ' + fails.join(', '); }
+  else { el.className = 'selfcheck ok'; el.textContent = 'Self-check passed: 13 vectors (kWh arithmetic, Scope 2 at 0.401, gap → incomplete, user override of gap only, lower-bound derivation, bottom-up stoichiometry and range, reference-equipment sizing, break-even, make-up, sludge, validation).'; }
+}
+
+// ---------- UI ----------
+const $ = id => document.getElementById(id);
+const num = el => { const v = (typeof el === 'string' ? $(el) : el).value.trim(); return v === '' ? null : Number(v); };
+const fmt = (x, d = 1) => (x === null || !Number.isFinite(x)) ? '—' : x.toLocaleString('en', { maximumFractionDigits: d, minimumFractionDigits: d });
+const badge = s => `<span class="tag ${s === 'verified' ? 'ok' : s === 'secondary' ? 'sec' : s === 'gap' ? 'gap' : s === 'user' ? 'user' : 'ext'}">${s}</span>`;
+let last = null;
+
+function readRoutes() {
+  const eq = r => [...document.querySelectorAll(`.eq[data-route="${r}"]`)].map(row => { const [n, kw, lf, h] = row.querySelectorAll('input'); return { name: n.value.trim() || 'unit', kw: num(kw), lf: num(lf), h: num(h) }; });
+  const dose = num('dose'), reuse = num('reuse'), ds = num('ds'), haul = num('haul');
+  if (dose === null || reuse === null) throw new InputError('Dose and reuse fraction are required.');
+  if (ds === null || ds <= 0 || ds > 1) throw new InputError('Dry-solids fraction must be between 0 and 1.');
+  const mk = makeup(dose, reuse);
+  const M = { name: 'Route M', eq: eq('M'), chem: [{ name: 'Fe₃O₄ nanocoagulant make-up', kg: mk, key: 'Fe3O4_nanocoagulant', userFactor: num('fe3o4f'), userSrc: $('fe3o4src').value.trim() }], sludge: [{ name: 'lost nanocoagulant in CaF₂ sludge', t: mk / 1000 / ds, km: haul }] };
+  const fecl3 = num('fecl3'), pam = num('pam');
+  if (fecl3 === null || pam === null) throw new InputError('FeCl₃ and PAM doses are required.');
+  const feoh3 = fecl3 * 0.4 * FACTORS.stoich.FeCl3_to_FeOH3;
+  const C = { name: 'Route C', eq: eq('C'), chem: [{ name: 'FeCl₃ (40 % product)', kg: fecl3, key: $('fecl3route').value, userFactor: null }, { name: 'PAM polymer', kg: pam, key: 'PAM', userFactor: null }], sludge: [{ name: 'Fe(OH)₃ hydroxide sludge', t: feoh3 / 1000 / ds, km: haul }] };
+  return { M, C, sl: { sdf: num('sdf'), trf: num('trf'), src: $('ssrc').value.trim() } };
+}
+function showMsgs(list) { const b = $('msgs'); b.innerHTML = ''; for (const m of list) { const d = document.createElement('div'); d.className = 'msg ' + m.kind; d.innerHTML = `<span aria-hidden="true">${m.kind === 'err' ? '✕' : '!'}</span><span>${m.text}</span>`; b.appendChild(d); } }
+
+function compute() {
+  const msgs = []; let M, C, sl, rM, rC;
+  try { ({ M, C, sl } = readRoutes()); rM = audit(M, $('grid').value, sl); rC = audit(C, $('grid').value, sl); }
+  catch (e) { msgs.push({ kind: 'err', text: e.message }); showMsgs(msgs); return; }
+  [...rM.warnings, ...rC.warnings].forEach(w => msgs.push({ kind: 'warn', text: w }));
+  if (!rM.complete) msgs.push({ kind: 'warn', text: `Route M incomplete — missing: ${rM.missing.join('; ')}.` });
+  if (!rC.complete) msgs.push({ kind: 'warn', text: `Route C incomplete — missing: ${rC.missing.join('; ')}.` });
+  showMsgs(msgs);
+  for (const [id, r] of [['kM', rM], ['kC', rC]]) { const k = $(id); k.className = 'kpi' + (r.complete ? '' : ' inc'); k.querySelector('.v').textContent = fmt(r.total, 1) + (r.complete ? '' : ' *'); k.querySelector('.l').textContent = `${r.name} total, kg CO₂e / 1000 m³${r.complete ? '' : ' — * incomplete, ' + r.missing.length + ' gap line(s) excluded'}`; }
+  const tb = $('tbody'); tb.innerHTML = '';
+  for (const r of [rM, rC]) {
+    tb.insertAdjacentHTML('beforeend', `<tr class="group"><th colspan="4">${r.name}${r.complete ? '' : ' — incomplete'}</th><th class="num">${fmt(r.total)}</th></tr>`);
+    for (const l of r.lines) tb.insertAdjacentHTML('beforeend', `<tr><td><i class="sw" style="background:${l.scope === 'Scope 2' ? 'var(--s2)' : l.scope === 'Scope 3.1' ? 'var(--s31)' : l.scope === 'Scope 3.5' ? 'var(--s35)' : 'transparent'}"></i>${l.scope} · ${l.source}</td><td class="num">${fmt(l.act, 2)} ${l.actU}</td><td class="num" title="${l.fsrc.replace(/"/g, '&quot;')}">${l.f === null ? '—' : l.f}</td><td>${badge(l.status)}</td><td class="num">${l.kg === null ? '<span style="color:#fca5a5">missing</span>' : fmt(l.kg, 2)}</td></tr>`);
+  }
+  drawStacked([rM, rC]); const t = tornado(M, $('grid').value, sl); drawTornado(t.rows, t.base);
+  const fM = chemFactor(M.chem[0]); const beEl = $('breakeven');
+  if (fM.v !== null && fM.v > 0) { const mNon = rM.total - (rM.byScope['Scope 3.1'] || 0); const be = breakeven(mNon, rC.total, num('dose'), fM.v);
+    beEl.innerHTML = be.feasible ? `<strong>Carbon break-even:</strong> route M matches route C when per-cycle reuse ≥ <strong>${(be.reuse * 100).toFixed(1)} %</strong> at ${num('dose')} g/m³ (make-up ≤ ${be.allowed.toFixed(2)} kg/1000 m³ at ${fM.v.toFixed(2)} kg CO₂e/kg). Current reuse ${(num('reuse') * 100).toFixed(0)} %.` : `<strong>Carbon break-even:</strong> not reachable at these inputs — route M's non-chemical emissions (${mNon.toFixed(1)}) already exceed route C's total (${rC.total.toFixed(1)}).`; }
+  else beEl.textContent = 'Carbon break-even: needs an Fe₃O₄ factor (enter one or use the estimate).';
+  last = { rM, rC };
+}
+
+// ---------- Charts ----------
+const tt = $('tt'); function tip(el, text) { el.addEventListener('mouseenter', () => { tt.textContent = text; tt.style.display = 'block'; }); el.addEventListener('mousemove', e => { tt.style.left = (e.clientX + 12) + 'px'; tt.style.top = (e.clientY + 12) + 'px'; }); el.addEventListener('mouseleave', () => tt.style.display = 'none'); }
+function svgEl(tag, a) { const e = document.createElementNS('http://www.w3.org/2000/svg', tag); for (const k in a) e.setAttribute(k, a[k]); return e; }
+function drawStacked(rs) {
+  const W = 560, rowH = 46, L = 90, R = 110, T = 8, H = T + rs.length * rowH + 26; const max = Math.max(...rs.map(r => r.total), 1); const x = v => L + v / max * (W - L - R);
+  const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, width: '100%', role: 'img', 'aria-label': 'Emissions by scope per route' });
+  const step = max > 200 ? 100 : max > 80 ? 25 : max > 30 ? 10 : 5; for (let t = 0; t <= max; t += step) { svg.appendChild(svgEl('line', { x1: x(t), x2: x(t), y1: T, y2: H - 26, stroke: '#23304A' })); const tx = svgEl('text', { x: x(t), y: H - 10, 'text-anchor': 'middle', fill: '#94A3B8', 'font-size': 11 }); tx.textContent = t; svg.appendChild(tx); }
+  rs.forEach((r, i) => { const y = T + i * rowH + 9; let left = 0; const lab = svgEl('text', { x: L - 10, y: y + 17, 'text-anchor': 'end', fill: '#E2E8F0', 'font-size': 12 }); lab.textContent = r.name; svg.appendChild(lab);
+    for (const [sc, col] of [['Scope 2', 'var(--s2)'], ['Scope 3.1', 'var(--s31)'], ['Scope 3.5', 'var(--s35)']]) { const v = r.byScope[sc] || 0; const w = Math.max(0, x(left + v) - x(left) - (left ? 2 : 0)); const rect = svgEl('rect', { x: x(left) + (left ? 2 : 0), y, width: w, height: 26, rx: 3, fill: col }); tip(rect, `${r.name} · ${sc}: ${fmt(v, 1)} kg CO₂e`); svg.appendChild(rect); left += v; }
+    const v = svgEl('text', { x: x(left) + 8, y: y + 17, fill: '#F8FAFC', 'font-size': 12, 'font-weight': 600 }); v.textContent = `${fmt(r.total, 0)} kg${r.complete ? '' : ' *'}`; svg.appendChild(v); });
+  $('chart1').replaceChildren(svg);
+}
+function drawTornado(rows, base) {
+  const W = 560, rowH = 34, L = 200, R = 70, T = 6, H = T + rows.length * rowH + 24; const maxd = Math.max(...rows.map(r => Math.max(Math.abs(r.lo - base), Math.abs(r.hi - base))), 1e-9); const x0 = L + (W - L - R) / 2, sc = (W - L - R) / 2 / maxd;
+  const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, width: '100%', role: 'img', 'aria-label': 'Sensitivity of route M' }); svg.appendChild(svgEl('line', { x1: x0, x2: x0, y1: T, y2: H - 24, stroke: '#94A3B8' }));
+  rows.forEach((r, i) => { const y = T + i * rowH + 6; const lab = svgEl('text', { x: L - 8, y: y + 15, 'text-anchor': 'end', fill: '#E2E8F0', 'font-size': 11 }); lab.textContent = r.item.length > 34 ? r.item.slice(0, 33) + '…' : r.item; svg.appendChild(lab);
+    const dl = (r.lo - base) * sc, dh = (r.hi - base) * sc; const a = svgEl('rect', { x: x0 + Math.min(0, dl), y, width: Math.max(Math.abs(dl) - 1, 0), height: 22, fill: 'var(--s2)', rx: 3 }); tip(a, `${r.item} −30 %: ${fmt(r.lo)} (${fmt(r.lo - base)})`); svg.appendChild(a);
+    const b = svgEl('rect', { x: x0 + 1, y, width: Math.max(dh - 1, 0), height: 22, fill: 'var(--s31)', rx: 3 }); tip(b, `${r.item} +30 %: ${fmt(r.hi)} (+${fmt(r.hi - base)})`); svg.appendChild(b);
+    const v = svgEl('text', { x: x0 + dh + 6, y: y + 15, fill: '#F8FAFC', 'font-size': 11 }); v.textContent = `±${fmt(r.span / 2, 1)}`; svg.appendChild(v); });
+  const lg = svgEl('text', { x: L, y: H - 8, fill: '#94A3B8', 'font-size': 11 }); lg.innerHTML = `<tspan fill="var(--s2)">■</tspan> −30 %  <tspan fill="var(--s31)">■</tspan> +30 %  · base ${fmt(base, 1)} kg CO₂e`; svg.appendChild(lg); $('chart2').replaceChildren(svg);
+}
+
+// ---------- Factor table, CSV, events ----------
+(function fillFactors() {
+  const tb = document.querySelector('#factors tbody'); const row = (name, f) => tb.insertAdjacentHTML('beforeend', `<tr><td>${name}</td><td class="num">${f.value === null ? '—' : f.value}</td><td>${f.unit}</td><td>${f.url ? `<a href="${f.url}" target="_blank" rel="noopener noreferrer">${f.source}</a>` : f.source}${f.year ? ` · ${f.year}` : ''}${f.region ? ` · ${f.region}` : ''}</td><td>${f.boundary || ''}</td><td>${badge(f.status)}</td></tr>`);
+  for (const [k, f] of Object.entries(FACTORS.grid)) row('Grid ' + k.replace('_', ' '), f);
+  for (const [k, f] of Object.entries(FACTORS.chemicals)) row(k.replace(/_/g, ' '), f);
+  for (const [k, f] of Object.entries(FACTORS.sludge)) row('Sludge ' + k.replace('_', ' '), f);
+  const bu0 = fe3o4BottomUp('SG_2024'); tb.insertAdjacentHTML('beforeend', `<tr><td>Fe₃O₄ bottom-up estimate</td><td class="num">${bu0.value.toFixed(2)}</td><td>kg CO₂e/kg Fe₃O₄</td><td>Computed here: ${bu0.parts.map(p => `${p[0]} ${p[1].toFixed(2)}`).join('; ')}</td><td>Cradle-to-gate reagents + process energy; excludes coating, packaging, transport, brine treatment; range ≈ 4.3–6.5 across assumption sets</td><td><span class="tag ext">estimated</span></td></tr>`);
+  tb.insertAdjacentHTML('beforeend', `<tr><td>Fe₃O₄ precursor lower bound</td><td class="num">${FACTORS.chemicals.Fe3O4_nanocoagulant.lower_bound}</td><td>kg CO₂e/kg Fe₃O₄</td><td>Derived from INCOPA FeCl₃ (iron-oxide route) by stoichiometry</td><td>Iron precursor only; excludes NaOH, energy, processing, coating</td><td><span class="tag ext">derived floor</span></td></tr>`);
+})();
+$('lb').addEventListener('click', () => { $('fe3o4f').value = FACTORS.chemicals.Fe3O4_nanocoagulant.lower_bound; $('fe3o4src').value = 'Precursor lower bound derived from INCOPA 2014 FeCl₃ factor (see method)'; compute(); });
+$('dl').addEventListener('click', () => { if (!last) return; const rows = [['route', 'scope', 'source', 'activity', 'activity_unit', 'factor', 'factor_source', 'factor_status', 'kg_co2e']]; for (const r of [last.rM, last.rC]) for (const l of r.lines) rows.push([r.name, l.scope, l.source, l.act, l.actU, l.f ?? '', l.fsrc, l.status, l.kg ?? 'MISSING']); rows.push([]); rows.push(['grid', $('grid').value]); rows.push(['note', 'Totals exclude MISSING lines; see status column']); const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n'); const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = 'separation_stage_carbon_ledger.csv'; a.click(); });
+const DEF = { dose: 50, reuse: 0.81, fe3o4f: '', fe3o4src: '', fecl3: 30, pam: 1, ds: 0.2, haul: 30, sdf: '', trf: '', ssrc: '' };
+const EQDEF = referenceEquipment(1000);
+function applyDefaults() { for (const k in DEF) $(k).value = DEF[k]; for (const r of ['M', 'C']) document.querySelectorAll(`.eq[data-route="${r}"]`).forEach((row, i) => { row.querySelectorAll('input').forEach((inp, j) => inp.value = typeof EQDEF[r][i][j] === 'number' && j > 0 ? +EQDEF[r][i][j].toFixed(3) : EQDEF[r][i][j]); }); $('grid').value = 'SG_2024'; $('fecl3route').value = 'FeCl3_40pct_iron_oxide_route'; }
+$('reset').addEventListener('click', () => { applyDefaults(); compute(); });
+$('est').addEventListener('click', () => { const bu = fe3o4BottomUp($('grid').value); $('fe3o4f').value = bu.value.toFixed(2); $('fe3o4src').value = 'Bottom-up cradle-to-gate estimate (coprecipitation stoichiometry; INCOPA FeCl₃, Euro Chlor NaOH, grid energy) — see method'; compute(); });
+document.querySelectorAll('input, select').forEach(el => el.addEventListener('input', compute));
+selfCheck(); applyDefaults(); compute();
+</script>
+</body>
+</html>

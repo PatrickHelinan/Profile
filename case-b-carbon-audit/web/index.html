@@ -83,10 +83,15 @@
       td.num, th.num { white-space: normal; }
       .tt { display: none !important; }
     }
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+    .skip-link { position: absolute; top: 8px; left: 16px; transform: translateY(-180%); background: var(--accent); color: var(--accent-contrast); padding: 8px 12px; border-radius: 6px; z-index: 10; }
+    .skip-link:focus { transform: translateY(0); }
+    .table-scroll { max-width: 100%; overflow-x: auto; }
   </style>
 </head>
 <body>
-  <div class="container">
+  <a class="skip-link" href="#main">Skip to main content</a>
+  <main class="container" id="main">
     <p class="crumb"><a href="../../">Linan He</a> · Case study B</p>
     <h1>Carbon data audit for a post-precipitation separation stage</h1>
     <p class="lede">Same scenario as <a href="../case-a/">Case A</a>, now as an emissions ledger per 1000 m³ treated. Electricity is estimated from nameplate power × load factor × running hours. Every emission factor carries its source, year, region, boundary and a verification status. A factor I could not verify is a <span class="tag gap">gap</span>: the line is shown as missing and the total is flagged incomplete, rather than filled with a guess.</p>
@@ -102,10 +107,10 @@
 
         <h3>Route M — magnetic nanocoagulation <span class="tag ext">nameplate × load × hours</span></h3>
         <div class="eq"><span class="hdr name">Unit</span><span class="hdr">kW</span><span class="hdr">load 0–1</span><span class="hdr">h / 1000 m³</span></div>
-        <div class="eq" data-route="M"><input class="name" type="text" value=""><input type="number" step="any" value=""><input type="number" step="any" value=""><input type="number" step="any" value="24"></div>
-        <div class="eq" data-route="M"><input class="name" type="text" value=""><input type="number" step="any" value=""><input type="number" step="any" value=""><input type="number" step="any" value="24"></div>
-        <div class="eq" data-route="M"><input class="name" type="text" value=""><input type="number" step="any" value=""><input type="number" step="any" value=""><input type="number" step="any" value="24"></div>
-        <div class="eq" data-route="M"><input class="name" type="text" value=""><input type="number" step="any" value=""><input type="number" step="any" value=""><input type="number" step="any" value="24"></div>
+        <div class="eq" data-route="M"><input aria-label="Route M equipment 1 name" class="name" type="text" value=""><input aria-label="Route M equipment 1 rated power (kW)" type="number" step="any" value=""><input aria-label="Route M equipment 1 load fraction (0–1)" type="number" step="any" value=""><input aria-label="Route M equipment 1 running hours per 1000 m³" type="number" step="any" value="24"></div>
+        <div class="eq" data-route="M"><input aria-label="Route M equipment 2 name" class="name" type="text" value=""><input aria-label="Route M equipment 2 rated power (kW)" type="number" step="any" value=""><input aria-label="Route M equipment 2 load fraction (0–1)" type="number" step="any" value=""><input aria-label="Route M equipment 2 running hours per 1000 m³" type="number" step="any" value="24"></div>
+        <div class="eq" data-route="M"><input aria-label="Route M equipment 3 name" class="name" type="text" value=""><input aria-label="Route M equipment 3 rated power (kW)" type="number" step="any" value=""><input aria-label="Route M equipment 3 load fraction (0–1)" type="number" step="any" value=""><input aria-label="Route M equipment 3 running hours per 1000 m³" type="number" step="any" value="24"></div>
+        <div class="eq" data-route="M"><input aria-label="Route M equipment 4 name" class="name" type="text" value=""><input aria-label="Route M equipment 4 rated power (kW)" type="number" step="any" value=""><input aria-label="Route M equipment 4 load fraction (0–1)" type="number" step="any" value=""><input aria-label="Route M equipment 4 running hours per 1000 m³" type="number" step="any" value="24"></div>
         <div class="hint">Continuous unit sized for 1000 m³/d runs 24 h per 1000 m³. Permanent-magnet separator: drive only; an electromagnet adds coil power — enter it as a separate line.</div>
         <div class="row3" style="margin-top:10px">
           <div class="field"><label for="dose">Fe₃O₄ dose (g/m³)</label><input id="dose" type="number" step="any" value="50"><div class="hint">Manuscript batch dose, 50 mg/L.</div></div>
@@ -116,9 +121,9 @@
 
         <h3>Route C — conventional chemical clarification</h3>
         <div class="eq"><span class="hdr name">Unit</span><span class="hdr">kW</span><span class="hdr">load 0–1</span><span class="hdr">h / 1000 m³</span></div>
-        <div class="eq" data-route="C"><input class="name" type="text" value=""><input type="number" step="any" value=""><input type="number" step="any" value=""><input type="number" step="any" value="24"></div>
-        <div class="eq" data-route="C"><input class="name" type="text" value=""><input type="number" step="any" value=""><input type="number" step="any" value=""><input type="number" step="any" value="24"></div>
-        <div class="eq" data-route="C"><input class="name" type="text" value=""><input type="number" step="any" value=""><input type="number" step="any" value=""><input type="number" step="any" value="24"></div>
+        <div class="eq" data-route="C"><input aria-label="Route C equipment 1 name" class="name" type="text" value=""><input aria-label="Route C equipment 1 rated power (kW)" type="number" step="any" value=""><input aria-label="Route C equipment 1 load fraction (0–1)" type="number" step="any" value=""><input aria-label="Route C equipment 1 running hours per 1000 m³" type="number" step="any" value="24"></div>
+        <div class="eq" data-route="C"><input aria-label="Route C equipment 2 name" class="name" type="text" value=""><input aria-label="Route C equipment 2 rated power (kW)" type="number" step="any" value=""><input aria-label="Route C equipment 2 load fraction (0–1)" type="number" step="any" value=""><input aria-label="Route C equipment 2 running hours per 1000 m³" type="number" step="any" value="24"></div>
+        <div class="eq" data-route="C"><input aria-label="Route C equipment 3 name" class="name" type="text" value=""><input aria-label="Route C equipment 3 rated power (kW)" type="number" step="any" value=""><input aria-label="Route C equipment 3 load fraction (0–1)" type="number" step="any" value=""><input aria-label="Route C equipment 3 running hours per 1000 m³" type="number" step="any" value="24"></div>
         <div class="row3" style="margin-top:10px">
           <div class="field"><label for="fecl3">FeCl₃ 40 % product (g/m³)</label><input id="fecl3" type="number" step="any" value="30"></div>
           <div class="field"><label for="fecl3route">FeCl₃ production route</label><select id="fecl3route"><option value="FeCl3_40pct_iron_oxide_route">Iron-oxide route 0.395</option><option value="FeCl3_40pct_pickling_route">Pickling-acid route 0.135</option></select></div>
@@ -179,7 +184,7 @@
 
     <div class="selfcheck" id="selfcheck">Self-check pending…</div>
     <footer>Linan He · <a href="https://github.com/PatrickHelinan/Profile" id="repo">Python module, factor register and tests</a> · No client or plant data are used; all inputs on this page are placeholders or yours.</footer>
-  </div>
+  </main>
   <div class="tt" id="tt" role="tooltip"></div>
 
 <script>

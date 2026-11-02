@@ -77,10 +77,15 @@
       .kpis { grid-template-columns: 1fr; }
     }
     @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+    .skip-link { position: absolute; top: 8px; left: 16px; transform: translateY(-180%); background: var(--accent); color: var(--accent-contrast); padding: 8px 12px; border-radius: 6px; z-index: 10; }
+    .skip-link:focus { transform: translateY(0); }
+    .table-scroll { max-width: 100%; overflow-x: auto; }
   </style>
 </head>
 <body>
-  <div class="container">
+  <a class="skip-link" href="#main">Skip to main content</a>
+  <main class="container" id="main">
     <p class="crumb"><a href="../../">Linan He</a> · Case study A</p>
     <h1>Hydraulic inventory calculator for post-precipitation separation</h1>
     <p class="lede">A screening tool that turns stage durations into nominal hydraulic inventory, <span class="mono">V = Q·τ</span>, and compares a candidate separation sequence with chemical-clarification design references. The core block reproduces the prospective analysis in my first-author manuscript; the extensions below it are parametric and use assumptions you supply.</p>
@@ -137,10 +142,12 @@
           <div class="kpi"><div class="v" id="k-area">—</div><div class="l">Plan area at set depth (m²)</div></div>
         </div>
 
+        <div class="table-scroll" role="region" aria-label="Stage volume comparison" tabindex="0">
         <table aria-label="Stage volumes">
           <thead><tr><th>Scenario / stage</th><th class="num">τ (min)</th><th class="num">V (m³)</th><th class="num">Ratio to candidate</th></tr></thead>
           <tbody id="tbody"></tbody>
         </table>
+        </div>
 
         <div class="chart" id="chart1"></div>
         <div class="legend"><span><i class="sw" style="background:var(--s1)"></i>Stage 1</span><span><i class="sw" style="background:var(--s2)"></i>Stage 2</span><span><i class="sw" style="background:var(--s3)"></i>Stage 3</span></div>
@@ -170,7 +177,7 @@
     <div class="selfcheck" id="selfcheck">Self-check pending…</div>
 
     <footer>Linan He · <a href="https://github.com/PatrickHelinan/Profile" id="repo">Python module and tests</a> · Values depend on entered assumptions; no client or plant data are used.</footer>
-  </div>
+  </main>
   <div class="tt" id="tt" role="tooltip"></div>
 
 <script>

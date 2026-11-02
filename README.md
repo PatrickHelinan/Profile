@@ -1,4 +1,4 @@
-# water-engineering-cases
+# Water engineering cases
 
 Two small, checkable engineering tools built around one scenario from my
 PhD research: recovering fine CaF₂ precipitates from semiconductor wastewater
